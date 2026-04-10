@@ -1,0 +1,89 @@
+{
+  "name": "City Block",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": -90,
+  "trackWidth": 65,
+  "lapCount": 3,
+  "truckScale": 1,
+  "walls": "outer",
+  "colors": {
+    "bg": 2237491,
+    "track": 6710903,
+    "border": 4473941,
+    "grass": 2767402
+  },
+  "sections": [
+    {
+      "type": "straight",
+      "length": 200,
+      "hazards": [
+        {
+          "type": "water",
+          "at": 0.35,
+          "offset": 0.71,
+          "radius": 13
+        }
+      ]
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 70,
+      "hazards": [
+        {
+          "type": "bump",
+          "at": 0.56,
+          "radius": 32,
+          "offset": -0.03
+        }
+      ]
+    },
+    {
+      "type": "straight",
+      "length": 150,
+      "hazards": [
+        {
+          "type": "hole",
+          "at": 0.76,
+          "offset": -0.38
+        },
+        {
+          "type": "hole",
+          "at": 0.29,
+          "offset": 0.39
+        }
+      ]
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 70
+    },
+    {
+      "type": "straight",
+      "length": 200,
+      "hazards": [
+        {
+          "type": "oil",
+          "at": 0.27,
+          "offset": -0.33
+        }
+      ]
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 70
+    },
+    {
+      "type": "straight",
+      "length": 150
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 70
+    }
+  ]
+}

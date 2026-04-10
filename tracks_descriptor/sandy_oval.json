@@ -1,0 +1,36 @@
+﻿{
+    "name":  "Sandy Oval",
+    "startX":  400,
+    "startY":  500,
+    "startAngle":  -90,
+    "trackWidth":  75,
+    "lapCount":  3,
+    "walls":  "none",
+    "colors":  {
+                   "bg":  3812890,
+                   "track":  9139029,
+                   "border":  6045747,
+                   "grass":  4881978
+               },
+    "sections":  [
+                     {
+                         "type":  "straight",
+                         "length":  180
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  -180,
+                         "radius":  110
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  180
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  -180,
+                         "radius":  110
+                     }
+                 ],
+    "truckScale":  1
+}

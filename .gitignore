@@ -1,0 +1,33 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Node (in case we add npm packages later)
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+
+# Markdown files (except README.md)
+*.md
+!README.md
+
+# PDF files
+*.pdf
+
+# V8T session files
+*.v8t
+
+# Original / source audio samples (subsampled versions are in assets/audio/)
+43159__enginemusic__lr99mclarenrev.mp3
+432508__holderall__open-header-v8-cars-idling-and-revving.wav
+659025__josefpres__8-bit-game-loop-014-only-organ-long-120-bpm.wav
+
+# Temporary files
+_temp_check.js

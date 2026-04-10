@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Editor — Mega V8 Off Road</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #ccc;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #header {
+            background: #16213e;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #0f3460;
+            flex-shrink: 0;
+        }
+        #header h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: #ffcc00;
+            white-space: nowrap;
+        }
+        .btn {
+            background: #0f3460;
+            color: #ccc;
+            border: 1px solid #1a5276;
+            padding: 5px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .btn:hover { background: #1a5276; color: #fff; }
+        .btn-primary { background: #e94560; border-color: #e94560; color: #fff; }
+        .btn-primary:hover { background: #ff6b81; }
+        .btn-success { background: #27ae60; border-color: #27ae60; color: #fff; }
+        .btn-success:hover { background: #2ecc71; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        .tool-btn.active { background: #e94560; border-color: #e94560; color: #fff; }
+
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        /* Left panel */
+        #left-panel {
+            width: 310px;
+            min-width: 310px;
+            background: #16213e;
+            border-right: 2px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-section {
+            padding: 8px 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .panel-section h3 {
+            font-size: 10px;
+            color: #ffcc00;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+            gap: 6px;
+        }
+        .form-row label {
+            font-size: 11px;
+            min-width: 55px;
+            color: #888;
+        }
+        .form-row input, .form-row select {
+            flex: 1;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            color: #ccc;
+            padding: 3px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        .form-row input[type="color"] {
+            width: 28px; height: 22px; padding: 0; cursor: pointer; flex: none;
+        }
+        .form-row input[type="range"] { padding: 0; }
+        .form-row input[type="checkbox"] { flex: none; width: auto; }
+
+        /* Sections list */
+        #sections-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 6px;
+        }
+        .sec-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 3px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .sec-card:hover { border-color: #555; }
+        .sec-card.sel { border-color: #ffcc00; background: #1e2a4a; }
+        .sec-hdr {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+        }
+        .sec-type { font-weight: bold; color: #ffcc00; min-width: 52px; }
+        .sec-info { flex: 1; color: #888; font-size: 10px; }
+        .sec-btns { display: flex; gap: 2px; }
+        .sec-btns button {
+            background: none; border: none; color: #666;
+            cursor: pointer; font-size: 13px; padding: 1px 3px;
+        }
+        .sec-btns button:hover { color: #fff; }
+        .sec-detail {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid #333;
+            display: none;
+        }
+        .sec-card.sel .sec-detail { display: block; }
+
+        #add-bar {
+            padding: 8px 10px;
+            display: flex;
+            gap: 6px;
+            border-top: 1px solid #0f3460;
+            flex-shrink: 0;
+        }
+        #add-bar .btn { flex: 1; text-align: center; }
+
+        /* Canvas */
+        #canvas-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+            position: relative;
+        }
+        #preview { border: 1px solid #333; display: block; }
+        #track-info {
+            position: absolute;
+            bottom: 8px; left: 8px;
+            font-size: 10px; color: #888;
+            background: rgba(0,0,0,0.75);
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        #shortcut-help {
+            position: absolute;
+            top: 8px; right: 8px;
+            font-size: 9px; color: #555;
+            text-align: right;
+            line-height: 1.5;
+        }
+        /* Templates dropdown */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            min-width: 160px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .dropdown.open .dropdown-content { display: block; }
+        .dropdown-content a {
+            display: block;
+            padding: 6px 12px;
+            color: #ccc;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .dropdown-content a:hover { background: #0f3460; color: #fff; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🏁 TRACK EDITOR</h1>
+        <button class="btn" onclick="newTrack()">New</button>
+        <div class="dropdown" id="tmplDrop">
+            <button class="btn" onclick="toggleDropdown()">Templates ▾</button>
+            <div class="dropdown-content">
+                <a onclick="loadTemplate('oval')">🔵 Oval</a>
+                <a onclick="loadTemplate('rect')">🟥 Rectangle</a>
+                <a onclick="loadTemplate('tri')">🔺 Triangle</a>
+                <a onclick="loadTemplate('complex')">🌀 Winding Road</a>
+            </div>
+        </div>
+        <button class="btn" onclick="loadTrack()">Load JSON</button>
+        <button class="btn btn-success" onclick="saveTrack()">💾 Save JSON</button>
+        <button class="btn btn-primary" id="replaceBtn" onclick="replaceTrack()" style="display:none">🔄 Replace <span id="replaceFileName"></span></button>
+        <button class="btn" onclick="exportPNG()">📷 PNG</button>
+        <span style="flex:1"></span>
+        <span style="font-size:10px;color:#555">Mega V8 Off Road</span>
+    </div>
+
+    <div id="main">
+        <div id="left-panel">
+            <div class="panel-section">
+                <h3>Track Properties</h3>
+                <div class="form-row">
+                    <label>Name</label>
+                    <input type="text" id="propName" value="New Track" oninput="updatePreview()">
+                </div>
+                <div class="form-row">
+                    <label>Width</label>
+                    <input type="number" id="propWidth" value="70" min="30" max="120" oninput="updatePreview()">
+                    <label style="min-width:auto">Laps</label>
+                    <input type="number" id="propLaps" value="3" min="1" max="10" style="width:40px;flex:none" oninput="updatePreview()">
+                </div>
+                <div class="form-row">
+                    <label>Walls</label>
+                    <select id="propWalls" onchange="updatePreview()">
+                        <option value="none">None</option>
+                        <option value="outer">All sections</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Truck</label>
+                    <input type="range" id="propTruckScale" min="0.5" max="2.5" step="0.1" value="1.0"
+                        oninput="this.nextElementSibling.textContent=this.value+'x';showTruckPreview=true;updatePreview()"
+                        onmouseup="showTruckPreview=false;updatePreview()"
+                        onmouseleave="showTruckPreview=false;updatePreview()">
+                    <span style="min-width:30px;font-size:10px">1.0x</span>
+                </div>
+                <div class="form-row">
+                    <label>Track</label>
+                    <input type="color" id="colTrack" value="#8B7355" oninput="updatePreview()">
+                    <label style="min-width:auto">Border</label>
+                    <input type="color" id="colBorder" value="#5c4033" oninput="updatePreview()">
+                </div>
+                <div class="form-row">
+                    <label>Grass</label>
+                    <input type="color" id="colGrass" value="#4a7a3a" oninput="updatePreview()">
+                    <label style="min-width:auto">BG</label>
+                    <input type="color" id="colBg" value="#3a2a1a" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <div class="panel-section" style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0">
+                <h3>Sections <span id="sec-count" style="color:#666">(0)</span></h3>
+                <div id="sections-scroll"></div>
+            </div>
+
+            <div id="add-bar">
+                <button class="btn btn-primary" onclick="addSection('straight')">+ Straight</button>
+                <button class="btn btn-primary" onclick="addSection('turn')">+ Turn</button>
+                <button class="btn" onclick="toggleAllWalls()" title="Toggle walls on every section">🧱 Walls All</button>
+            </div>
+        </div>
+
+        <div id="canvas-wrap">
+            <canvas id="preview" width="800" height="600"></canvas>
+            <div id="track-info"></div>
+            <div id="shortcut-help">
+                S = add straight &nbsp; T = add turn<br>
+                Del = remove &nbsp; ↑↓ = navigate
+            </div>
+            <div id="tool-bar" style="position:absolute;top:6px;right:10px;display:flex;gap:4px;z-index:10">
+                <button class="btn btn-sm tool-btn active" data-tool="select" onclick="setTool('select')" title="Select sections">🔍 Select</button>
+                <button class="btn btn-sm tool-btn" data-tool="eraseWall" onclick="setTool('eraseWall')" title="Click walls to erase">🧹 Erase Wall</button>
+                <button class="btn btn-sm tool-btn" data-tool="placeStart" onclick="setTool('placeStart')" title="Click to place start line">🏁 Start Line</button>
+                <button class="btn btn-sm tool-btn" data-tool="freehand" onclick="setTool('freehand')" title="Draw centerline freehand">✏️ Draw</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+
+    <script>
+    // ═══════════════════════════════════════════════════════════
+    // State
+    // ═══════════════════════════════════════════════════════════
+    let sections = [];
+    let selIdx = -1;
+    let currentTool = 'select';
+    let erasedWalls = new Set();     // indices of erased wall sub-segments
+    let lastBuildResult = null;      // cached buildTrack() result
+    let lastTx = x=>x, lastTy = y=>y; // cached transform functions
+    lastTx.inv = x=>x; lastTy.inv = y=>y; // safe defaults for empty canvas
+    let freehandPts = [];            // points during freehand drawing
+    let isDrawing = false;
+    let loadedFileName = null;         // name of the loaded JSON file
+    let loadedFileHandle = null;       // File System Access API handle for in-place save
+    let showTruckPreview = false;       // show truck while adjusting scale
+    let customStartLineIdx = 0;       // waypoint index for start/finish line
+    let freehandStartAngle = -90;      // initial heading from freehand draw
+
+    // ═══════════════════════════════════════════════════════════
+    // Embedded TrackBuilder (for preview)
+    // ═══════════════════════════════════════════════════════════
+    function buildTrack(def) {
+        let x = def.startX || 400, y = def.startY || 500;
+        let heading = (def.startAngle || 0) * Math.PI / 180;
+        const waypoints = [], walls = [], hazards = [], secOf = [];
+        const hw = (def.trackWidth || 70) / 2;
+        const defaultWalls = def.walls || 'none';
+        let sn = 0;
+
+        for (const sec of def.sections) {
+            const sw = sec.walls === true ? 'outer' : sec.walls === false ? 'none' : defaultWalls;
+            const si = waypoints.length;
+
+            if (sec.type === 'straight') {
+                if (sec.rotate) heading += (sec.rotate * Math.PI / 180);
+                const len = sec.length || 50;
+                const n = Math.max(2, Math.round(len / 20));
+                const step = len / n;
+                for (let i = 0; i < n; i++) {
+                    waypoints.push([Math.round(x), Math.round(y)]);
+                    secOf.push(sn);
+                    if (sw !== 'none' && waypoints.length > 1)
+                        addWP(walls, waypoints[waypoints.length-2], waypoints[waypoints.length-1], hw, waypoints.length-2);
+                    x += Math.cos(heading) * step;
+                    y += Math.sin(heading) * step;
+                }
+            } else if (sec.type === 'turn') {
+                const ad = sec.angle || 90, r = sec.radius || 80;
+                const ar = ad * Math.PI / 180;
+                const outerArc = Math.abs(ar) * (r + hw);
+                const steps = Math.max(4, Math.round(outerArc / 14));
+                const sa = ar / steps;
+                const sgn = ad > 0 ? 1 : -1;
+                const pa = heading + sgn * Math.PI / 2;
+                const cx = x + Math.cos(pa) * r, cy = y + Math.sin(pa) * r;
+                let fc = Math.atan2(y - cy, x - cx);
+                for (let i = 0; i < steps; i++) {
+                    waypoints.push([Math.round(x), Math.round(y)]);
+                    secOf.push(sn);
+                    if (sw !== 'none' && waypoints.length > 1)
+                        addWP(walls, waypoints[waypoints.length-2], waypoints[waypoints.length-1], hw, waypoints.length-2);
+                    fc += sgn * Math.abs(sa);
+                    x = cx + Math.cos(fc) * r;
+                    y = cy + Math.sin(fc) * r;
+                    heading += sa;
+                }
+            }
+            if (sec.hazards) {
+                const pts = waypoints.slice(si);
+                for (const h of sec.hazards) {
+                    const p = ptAlong(pts, h.at || 0.5);
+                    if (p && pts.length >= 2) {
+                        // Apply lateral offset perpendicular to track direction
+                        const idx = Math.min(Math.floor((h.at || 0.5) * (pts.length - 1)), pts.length - 2);
+                        const dx = pts[idx+1][0] - pts[idx][0];
+                        const dy = pts[idx+1][1] - pts[idx][1];
+                        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+                        const nx = -dy/len, ny = dx/len;
+                        const off = (h.offset || 0) * hw;
+                        hazards.push({ type: h.type, x: p[0] + nx * off, y: p[1] + ny * off, radius: h.radius || hw*0.6 });
+                    } else if (p) {
+                        hazards.push({ type: h.type, x: p[0], y: p[1], radius: h.radius || hw*0.6 });
+                    }
+                }
+            }
+            sn++;
+        }
+        const first = waypoints[0];
+        const last = [Math.round(x), Math.round(y)];
+        const gap = first ? Math.sqrt((last[0]-first[0])**2 + (last[1]-first[1])**2) : 0;
+        if (gap > 15 && waypoints.length > 0) { waypoints.push(last); secOf.push(sn); }
+        if (defaultWalls !== 'none' && waypoints.length > 1)
+            addWP(walls, waypoints[waypoints.length-1], waypoints[0], hw, waypoints.length-1);
+        return { waypoints, walls, hazards, gap, endX: x, endY: y, secOf };
+    }
+
+    function addWP(walls, a, b, hw, wpIdx) {
+        const dx = b[0]-a[0], dy = b[1]-a[1], l = Math.sqrt(dx*dx+dy*dy);
+        if (!l) return;
+        const nx = -dy/l, ny = dx/l;
+        const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2;
+        walls.push([a[0]-nx*hw, a[1]-ny*hw, b[0]-nx*hw, b[1]-ny*hw, cx, cy, wpIdx]);
+        walls.push([a[0]+nx*hw, a[1]+ny*hw, b[0]+nx*hw, b[1]+ny*hw, cx, cy, wpIdx]);
+    }
+
+    function cullWalls(walls, waypoints, hw, secOf) {
+        const SUB=8, thr=hw*0.85, thr2=thr*thr, len=waypoints.length;
+        const segs=[];
+        for (let i=0;i<len;i++) { const j=(i+1)%len; segs.push([waypoints[i][0],waypoints[i][1],waypoints[j][0],waypoints[j][1],secOf?secOf[i]:-1]); }
+        const out=[];
+        for (const w of walls) {
+            const wx=w[2]-w[0], wy=w[3]-w[1], wl=Math.sqrt(wx*wx+wy*wy);
+            if (!wl) continue;
+            const src=w[6], wSec=secOf?secOf[src]:-1;
+            const ns=Math.max(1,Math.ceil(wl/SUB));
+            const dx=wx/ns, dy=wy/ns;
+            for (let s=0;s<ns;s++) {
+                const sx1=w[0]+dx*s, sy1=w[1]+dy*s;
+                const sx2=w[0]+dx*(s+1), sy2=w[1]+dy*(s+1);
+                const mx=(sx1+sx2)/2, my=(sy1+sy2)/2;
+                let over=false;
+                for (const seg of segs) {
+                    if (seg[4]===wSec) continue; // skip same section
+                    const ex=seg[2]-seg[0], ey=seg[3]-seg[1], l2=ex*ex+ey*ey;
+                    if (!l2) continue;
+                    let t=((mx-seg[0])*ex+(my-seg[1])*ey)/l2;
+                    t=Math.max(0,Math.min(1,t));
+                    const px=seg[0]+t*ex-mx, py=seg[1]+t*ey-my;
+                    if (px*px+py*py<thr2){over=true;break;}
+                }
+                if (!over) out.push([Math.round(sx1),Math.round(sy1),Math.round(sx2),Math.round(sy2),w[4],w[5],src]);
+            }
+        }
+        return out;
+    }
+
+    function ptAlong(pts, t) {
+        if (pts.length < 2) return pts[0] || null;
+        let total = 0; const sl = [];
+        for (let i = 1; i < pts.length; i++) {
+            const d = Math.sqrt((pts[i][0]-pts[i-1][0])**2 + (pts[i][1]-pts[i-1][1])**2);
+            sl.push(d); total += d;
+        }
+        let tgt = t * total;
+        for (let i = 0; i < sl.length; i++) {
+            if (tgt <= sl[i]) {
+                const f = sl[i] > 0 ? tgt/sl[i] : 0;
+                return [pts[i][0]+(pts[i+1][0]-pts[i][0])*f, pts[i][1]+(pts[i+1][1]-pts[i][1])*f];
+            }
+            tgt -= sl[i];
+        }
+        return pts[pts.length-1];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Build track definition from UI
+    // ═══════════════════════════════════════════════════════════
+    function getDef() {
+        return {
+            name: document.getElementById('propName').value,
+            startX: 400, startY: 500, startAngle: freehandStartAngle,
+            trackWidth: parseInt(document.getElementById('propWidth').value) || 70,
+            lapCount: parseInt(document.getElementById('propLaps').value) || 3,
+            truckScale: parseFloat(document.getElementById('propTruckScale').value) || 1,
+            walls: document.getElementById('propWalls').value,
+            colors: {
+                bg: document.getElementById('colBg').value,
+                track: document.getElementById('colTrack').value,
+                border: document.getElementById('colBorder').value,
+                grass: document.getElementById('colGrass').value,
+            },
+            sections: sections.map(s => {
+                const o = { type: s.type };
+                if (s.type === 'straight') { o.length = s.length; if (s.rotate) o.rotate = s.rotate; }
+                else { o.angle = s.angle; o.radius = s.radius; }
+                if (s.walls) o.walls = true;
+                if (s.hazards && s.hazards.length) o.hazards = s.hazards;
+                return o;
+            })
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Preview
+    // ═══════════════════════════════════════════════════════════
+    function updatePreview() {
+        const c = document.getElementById('preview');
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+        const def = getDef();
+
+        ctx.fillStyle = def.colors.grass;
+        ctx.fillRect(0, 0, W, H);
+
+        if (!sections.length) {
+            ctx.fillStyle = '#555';
+            ctx.font = '14px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Add sections to build a track', W/2, H/2-8);
+            ctx.font = '10px "Press Start 2P", monospace';
+            ctx.fillText('Or choose a Template above', W/2, H/2+18);
+            document.getElementById('track-info').textContent = 'No sections';
+            document.getElementById('sec-count').textContent = '(0)';
+            return;
+        }
+
+        const res = buildTrack(def);
+        lastBuildResult = res;
+        const wps = res.waypoints;
+        if (wps.length < 2) { document.getElementById('track-info').textContent = 'Need more sections'; return; }
+
+        // Auto-center
+        const tw = def.trackWidth;
+        let mnX=Infinity, mxX=-Infinity, mnY=Infinity, mxY=-Infinity;
+        for (const w of wps) { mnX=Math.min(mnX,w[0]-tw); mxX=Math.max(mxX,w[0]+tw); mnY=Math.min(mnY,w[1]-tw); mxY=Math.max(mxY,w[1]+tw); }
+        const rX=mxX-mnX||1, rY=mxY-mnY||1, pad=35;
+        const sc = Math.min((W-pad*2)/rX, (H-pad*2)/rY, 1.5);
+        const cX=(mnX+mxX)/2, cY=(mnY+mxY)/2;
+        const tx = x => (x-cX)*sc + W/2;
+        const ty = y => (y-cY)*sc + H/2;
+        lastTx = tx; lastTy = ty;
+        // Inverse transforms for mouse → track coords
+        lastTx.inv = px => (px - W/2) / sc + cX;
+        lastTy.inv = py => (py - H/2) / sc + cY;
+
+        // Border
+        ctx.strokeStyle = def.colors.border;
+        ctx.lineWidth = (tw+12)*sc;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
+        for (let i=1;i<wps.length;i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
+        if (res.gap <= 15) ctx.closePath();
+        ctx.stroke();
+
+        // Surface
+        ctx.strokeStyle = def.colors.track;
+        ctx.lineWidth = tw*sc;
+        ctx.beginPath(); ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
+        for (let i=1;i<wps.length;i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
+        if (res.gap <= 15) ctx.closePath();
+        ctx.stroke();
+
+        // Walls (skip erased ones) — alternating red/white
+        if (res.walls.length) {
+            ctx.lineWidth = Math.max(1.5, 2.5*sc);
+            for (let wi=0; wi<res.walls.length; wi++) {
+                if (erasedWalls.has(wi)) continue;
+                const w = res.walls[wi];
+                if (currentTool === 'eraseWall') ctx.strokeStyle = '#ff8888';
+                else ctx.strokeStyle = (Math.floor(wi / 2) % 2 === 0) ? '#cc0000' : '#ffffff';
+                ctx.beginPath(); ctx.moveTo(tx(w[0]),ty(w[1])); ctx.lineTo(tx(w[2]),ty(w[3])); ctx.stroke();
+            }
+        }
+
+        // Hazards
+        const hCol = { water:'#4488ff', hole:'#332211', bump:'#aa8855', oil:'#224422' };
+        const hIco = { water:'💧', hole:'⚫', bump:'⬆', oil:'🛢' };
+        for (const h of res.hazards) {
+            ctx.fillStyle = hCol[h.type]||'#f00';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath(); ctx.arc(tx(h.x),ty(h.y),h.radius*sc,0,Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.font = `${Math.max(10,14*sc)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(hIco[h.type]||'?', tx(h.x), ty(h.y));
+        }
+
+        // Start line
+        const sli = Math.min(customStartLineIdx, wps.length - 2);
+        if (wps.length > 1 && sli >= 0) {
+            const s0=wps[sli], s1=wps[(sli+1) % wps.length];
+            const dx=s1[0]-s0[0], dy=s1[1]-s0[1], l=Math.sqrt(dx*dx+dy*dy)||1;
+            const nx=-dy/l*tw/2, ny=dx/l*tw/2;
+            ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(2,4*sc);
+            ctx.beginPath(); ctx.moveTo(tx(s0[0]-nx),ty(s0[1]-ny)); ctx.lineTo(tx(s0[0]+nx),ty(s0[1]+ny)); ctx.stroke();
+            ctx.fillStyle='#ffcc00';
+            ctx.font=`bold ${Math.max(9,11*sc)}px sans-serif`;
+            ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText('START', tx(s0[0]), ty(s0[1]) - tw*sc/2 - 4);
+        }
+
+        // Highlight selected section's waypoints
+        if (selIdx >= 0 && selIdx < sections.length) {
+            let wi = 0;
+            for (let i = 0; i < sections.length; i++) {
+                const s = sections[i];
+                const cnt = s.type === 'straight'
+                    ? Math.max(2, Math.round((s.length||50)/30))
+                    : Math.max(3, Math.round(Math.abs(s.angle||90)/15));
+                if (i === selIdx) {
+                    ctx.fillStyle = '#ffcc00';
+                    for (let w=wi; w<wi+cnt && w<wps.length; w++) {
+                        ctx.beginPath(); ctx.arc(tx(wps[w][0]),ty(wps[w][1]),Math.max(3,4*sc),0,Math.PI*2); ctx.fill();
+                    }
+                    break;
+                }
+                wi += cnt;
+            }
+        }
+
+        // Info bar
+        const info = [`${wps.length} pts`];
+        if (res.gap <= 15) info.push('✅ Loop closed');
+        else info.push(`⚠ Gap: ${Math.round(res.gap)}px`);
+        if (res.walls.length) info.push(`${res.walls.length/2} walls`);
+        if (res.hazards.length) info.push(`${res.hazards.length} hazards`);
+        document.getElementById('track-info').textContent = info.join('  |  ');
+        document.getElementById('sec-count').textContent = `(${sections.length})`;
+
+        // Truck size preview overlay
+        if (showTruckPreview) {
+            const ts = parseFloat(document.getElementById('propTruckScale').value) || 1;
+            const s = ts * sc * 2.5; // visual multiplier so it's visible
+            drawTruckPreview(ctx, W/2, H/2, s);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Truck preview drawing (matches BaseTruck.createTruckGraphics)
+    // ═══════════════════════════════════════════════════════════
+    function drawTruckPreview(ctx, cx, cy, s) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(s, s);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(1, 1, 8, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.roundRect(-5, -9, 10, 18, 2);
+        ctx.fill();
+
+        // Windshield
+        ctx.fillStyle = 'rgba(136,204,255,0.8)';
+        ctx.fillRect(-3, -5, 6, 4);
+
+        // Roof detail
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(-2, -8, 4, 2);
+
+        // Rear bumper
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(-4, 7, 8, 2);
+
+        // Wheels
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(-7, -7, 3, 5);
+        ctx.fillRect(4, -7, 3, 5);
+        ctx.fillRect(-7, 3, 3, 5);
+        ctx.fillRect(4, 3, 3, 5);
+
+        ctx.restore();
+
+        // Label
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`Truck Scale: ${(s / 2.5).toFixed(1)}x`, cx, cy + 14 * s + 4);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Section CRUD
+    // ═══════════════════════════════════════════════════════════
+    function addSection(type) {
+        if (type === 'straight')
+            sections.push({ type:'straight', length:120, rotate:0, walls:false, hazards:[] });
+        else
+            sections.push({ type:'turn', angle:90, radius:100, walls:false, hazards:[] });
+        selIdx = sections.length - 1;
+        renderSections(); updatePreview();
+    }
+
+    function delSection(i) {
+        sections.splice(i, 1);
+        if (selIdx >= sections.length) selIdx = sections.length - 1;
+        renderSections(); updatePreview();
+    }
+
+    function moveSection(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= sections.length) return;
+        [sections[i], sections[j]] = [sections[j], sections[i]];
+        selIdx = j;
+        renderSections(); updatePreview();
+    }
+
+    function dupSection(i) {
+        sections.splice(i + 1, 0, JSON.parse(JSON.stringify(sections[i])));
+        selIdx = i + 1;
+        renderSections(); updatePreview();
+    }
+
+    function selSection(i) {
+        selIdx = (selIdx === i) ? -1 : i;
+        renderSections(); updatePreview();
+    }
+
+    function addHazard(i) {
+        sections[i].hazards.push({ type:'water', at:0.5 });
+        renderSections(); updatePreview();
+    }
+
+    function toggleAllWalls() {
+        const allOn = sections.every(s => s.walls);
+        sections.forEach(s => s.walls = !allOn);
+        renderSections(); updatePreview();
+    }
+
+    function delHazard(si, hi) {
+        sections[si].hazards.splice(hi, 1);
+        renderSections(); updatePreview();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Render section list
+    // ═══════════════════════════════════════════════════════════
+    function renderSections() {
+        const ct = document.getElementById('sections-scroll');
+        ct.innerHTML = '';
+        sections.forEach((sec, i) => {
+            const card = document.createElement('div');
+            card.className = 'sec-card' + (i===selIdx?' sel':'');
+
+            const lbl = sec.type === 'straight' ? '→ Straight' : '↻ Turn';
+            const nfo = sec.type === 'straight' ? `${sec.length}px${sec.rotate ? ' ↺'+sec.rotate+'°' : ''}` : `${sec.angle}° r=${sec.radius}`;
+            const wb = sec.walls ? ' 🧱':'';
+            const hb = sec.hazards.length ? ` ⚠${sec.hazards.length}`:'';
+
+            card.innerHTML = `
+                <div class="sec-hdr" onclick="selSection(${i})">
+                    <span class="sec-type">${lbl}</span>
+                    <span class="sec-info">${nfo}${wb}${hb}</span>
+                    <span class="sec-btns">
+                        <button onclick="event.stopPropagation();dupSection(${i})" title="Duplicate">⧉</button>
+                        <button onclick="event.stopPropagation();moveSection(${i},-1)" title="Up">▲</button>
+                        <button onclick="event.stopPropagation();moveSection(${i},1)" title="Down">▼</button>
+                        <button onclick="event.stopPropagation();delSection(${i})" title="Delete" style="color:#e94560">✕</button>
+                    </span>
+                </div>
+                <div class="sec-detail" id="det-${i}"></div>`;
+            ct.appendChild(card);
+
+            if (i === selIdx) {
+                const det = card.querySelector('.sec-detail');
+                let h = '';
+                if (sec.type === 'straight') {
+                    h += `<div class="form-row"><label>Length</label>
+                        <input type="range" min="30" max="500" value="${sec.length}"
+                            oninput="sections[${i}].length=+this.value;this.nextElementSibling.textContent=this.value+'px';updatePreview()">
+                        <span style="min-width:45px;font-size:10px">${sec.length}px</span></div>`;
+                    h += `<div class="form-row"><label>Rotate</label>
+                        <input type="range" min="-180" max="180" value="${sec.rotate||0}"
+                            oninput="sections[${i}].rotate=+this.value;this.nextElementSibling.textContent=this.value+'°';updatePreview()">
+                        <span style="min-width:35px;font-size:10px">${sec.rotate||0}°</span></div>`;
+                } else {
+                    h += `<div class="form-row"><label>Angle</label>
+                        <input type="range" min="-180" max="180" value="${sec.angle}"
+                            oninput="sections[${i}].angle=+this.value;this.nextElementSibling.textContent=this.value+'°';updatePreview()">
+                        <span style="min-width:35px;font-size:10px">${sec.angle}°</span></div>`;
+                    h += `<div class="form-row"><label>Radius</label>
+                        <input type="range" min="40" max="300" value="${sec.radius}"
+                            oninput="sections[${i}].radius=+this.value;this.nextElementSibling.textContent=this.value+'px';updatePreview()">
+                        <span style="min-width:45px;font-size:10px">${sec.radius}px</span></div>`;
+                }
+                h += `<div class="form-row"><label>Walls</label>
+                    <label style="min-width:auto"><input type="checkbox" ${sec.walls?'checked':''}
+                        onchange="sections[${i}].walls=this.checked;renderSections();updatePreview()"> On this section</label></div>`;
+
+                h += `<div style="margin-top:4px;display:flex;align-items:center;gap:6px">
+                    <span style="font-size:10px;color:#888">Hazards:</span>
+                    <button class="btn btn-sm" onclick="addHazard(${i})">+ Add</button></div>`;
+                sec.hazards.forEach((hz, hi) => {
+                    h += `<div class="form-row" style="margin-top:3px">
+                        <select onchange="sections[${i}].hazards[${hi}].type=this.value;updatePreview()" style="width:80px;flex:none">
+                            <option value="water" ${hz.type==='water'?'selected':''}>💧 Water</option>
+                            <option value="hole" ${hz.type==='hole'?'selected':''}>⚫ Hole</option>
+                            <option value="bump" ${hz.type==='bump'?'selected':''}>⬆ Bump</option>
+                            <option value="oil" ${hz.type==='oil'?'selected':''}>🛢 Oil</option>
+                        </select>
+                        <button onclick="delHazard(${i},${hi})" style="background:none;border:none;color:#e94560;cursor:pointer;font-size:13px">✕</button>
+                    </div>
+                    <div class="form-row">
+                        <label>Pos</label>
+                        <input type="range" min="0" max="100" value="${Math.round(hz.at*100)}"
+                            oninput="sections[${i}].hazards[${hi}].at=this.value/100;updatePreview()">
+                        <span style="min-width:30px;font-size:10px">${Math.round(hz.at*100)}%</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Side</label>
+                        <input type="range" min="-100" max="100" value="${Math.round((hz.offset||0)*100)}"
+                            oninput="sections[${i}].hazards[${hi}].offset=this.value/100;this.nextElementSibling.textContent=(this.value>0?'+':'')+this.value+'%';updatePreview()">
+                        <span style="min-width:35px;font-size:10px">${(hz.offset||0)>0?'+':''}${Math.round((hz.offset||0)*100)}%</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Size</label>
+                        <input type="range" min="5" max="80" value="${Math.round(hz.radius||0) || ''}" placeholder="auto"
+                            oninput="sections[${i}].hazards[${hi}].radius=+this.value;this.nextElementSibling.textContent=this.value+'px';updatePreview()">
+                        <span style="min-width:35px;font-size:10px">${hz.radius ? Math.round(hz.radius)+'px' : 'auto'}</span>
+                    </div>`;
+                });
+                det.innerHTML = h;
+            }
+        });
+        // Scroll selected into view
+        if (selIdx >= 0) {
+            const el = ct.children[selIdx];
+            if (el) el.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // File I/O
+    // ═══════════════════════════════════════════════════════════
+    // DEFAULT_NAMES is initialised after TEMPLATES (see below)
+    let DEFAULT_NAMES;
+
+    function saveTrack() {
+        const nameInput = document.getElementById('propName');
+        let name = nameInput.value.trim();
+        // Prompt for a name if still using a default or template name
+        if (!name || DEFAULT_NAMES.has(name)) {
+            const entered = prompt('Enter a name for this track:', name || 'My Track');
+            if (entered === null) return; // cancelled
+            name = entered.trim() || 'My Track';
+            nameInput.value = name;
+            updatePreview();
+        }
+        const json = buildSaveJSON();
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function replaceTrack() {
+        if (!loadedFileName) return;
+        const json = buildSaveJSON();
+        // Try writing in-place via File System Access API
+        if (loadedFileHandle) {
+            try {
+                const writable = await loadedFileHandle.createWritable();
+                await writable.write(json);
+                await writable.close();
+                document.getElementById('replaceFileName').textContent = loadedFileName + ' ✅';
+                setTimeout(() => {
+                    document.getElementById('replaceFileName').textContent = loadedFileName;
+                }, 1500);
+                return;
+            } catch(err) {
+                console.warn('File System write failed, falling back to download', err);
+            }
+        }
+        // Fallback: download
+        const blob = new Blob([json], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = loadedFileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function buildSaveJSON() {
+        const def = getDef();
+        const out = { ...def, colors: {
+            bg: hexToInt(def.colors.bg),
+            track: hexToInt(def.colors.track),
+            border: hexToInt(def.colors.border),
+            grass: hexToInt(def.colors.grass),
+        }};
+        if (erasedWalls.size > 0) {
+            out.erasedWalls = [...erasedWalls].sort((a,b) => a-b);
+        }
+        if (customStartLineIdx > 0) {
+            out.startLineIndex = customStartLineIdx;
+        }
+        return JSON.stringify(out, null, 2);
+    }
+
+    function loadTrack() {
+        // Try File System Access API first (Chrome/Edge) for in-place editing
+        if (window.showOpenFilePicker) {
+            showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })
+                .then(async ([handle]) => {
+                    loadedFileHandle = handle;
+                    const file = await handle.getFile();
+                    loadedFileName = file.name;
+                    const text = await file.text();
+                    try {
+                        applyDef(JSON.parse(text));
+                        document.getElementById('replaceBtn').style.display = '';
+                        document.getElementById('replaceFileName').textContent = loadedFileName;
+                    } catch(err) { alert('Invalid JSON: ' + err.message); }
+                }).catch(() => {}); // user cancelled
+        } else {
+            document.getElementById('fileInput').click();
+        }
+    }
+
+    function handleFileLoad(ev) {
+        const f = ev.target.files[0]; if (!f) return;
+        loadedFileName = f.name;
+        const r = new FileReader();
+        r.onload = e => {
+            try {
+                applyDef(JSON.parse(e.target.result));
+                document.getElementById('replaceBtn').style.display = '';
+                document.getElementById('replaceFileName').textContent = loadedFileName;
+            }
+            catch(err) { alert('Invalid JSON: ' + err.message); }
+        };
+        r.readAsText(f);
+        ev.target.value = '';
+    }
+
+    function applyDef(def) {
+        document.getElementById('propName').value = def.name || 'Loaded Track';
+        document.getElementById('propWidth').value = def.trackWidth || 70;
+        document.getElementById('propLaps').value = def.lapCount || 3;
+        document.getElementById('propWalls').value = def.walls || 'none';
+        const tsEl = document.getElementById('propTruckScale');
+        tsEl.value = def.truckScale || 1;
+        tsEl.nextElementSibling.textContent = (def.truckScale || 1) + 'x';
+        if (def.colors) {
+            document.getElementById('colTrack').value = toHex(def.colors.track);
+            document.getElementById('colBorder').value = toHex(def.colors.border);
+            document.getElementById('colGrass').value = toHex(def.colors.grass);
+            document.getElementById('colBg').value = toHex(def.colors.bg);
+        }
+        sections = (def.sections || []).map(s => ({
+            type: s.type,
+            length: s.length || 120,
+            angle: s.angle || 90,
+            radius: s.radius || 100,
+            rotate: s.rotate || 0,
+            walls: !!s.walls,
+            hazards: (s.hazards || []).map(h => ({ type: h.type, at: h.at || 0.5, offset: h.offset || 0, radius: h.radius || 0 })),
+        }));
+        selIdx = -1;
+        erasedWalls = new Set(def.erasedWalls || []);
+        customStartLineIdx = def.startLineIndex || 0;
+        freehandStartAngle = def.startAngle != null ? def.startAngle : -90;
+        renderSections(); updatePreview();
+    }
+
+    function exportPNG() {
+        const c = document.getElementById('preview');
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png');
+        const n = document.getElementById('propName').value || 'track';
+        a.download = n.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.png';
+        a.click();
+    }
+
+    function newTrack() {
+        if (sections.length && !confirm('Discard current track?')) return;
+        sections = []; selIdx = -1;
+        document.getElementById('propName').value = 'New Track';
+        document.getElementById('propWidth').value = '70';
+        document.getElementById('propLaps').value = '3';
+        document.getElementById('propWalls').value = 'none';
+        document.getElementById('propTruckScale').value = '1.0';
+        document.getElementById('propTruckScale').nextElementSibling.textContent = '1.0x';
+        document.getElementById('colTrack').value = '#8B7355';
+        document.getElementById('colBorder').value = '#5c4033';
+        document.getElementById('colGrass').value = '#4a7a3a';
+        document.getElementById('colBg').value = '#3a2a1a';
+        renderSections(); updatePreview();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Templates
+    // ═══════════════════════════════════════════════════════════
+    const TEMPLATES = {
+        oval: {
+            name: 'Sandy Oval', trackWidth: 75, lapCount: 3, walls: 'none',
+            colors: { bg:'#3a2a1a', track:'#8B7355', border:'#5c4033', grass:'#4a7a3a' },
+            sections: [
+                { type:'straight', length:180 },
+                { type:'turn', angle:-180, radius:110 },
+                { type:'straight', length:180 },
+                { type:'turn', angle:-180, radius:110 },
+            ]
+        },
+        rect: {
+            name: 'City Block', trackWidth: 65, lapCount: 3, walls: 'outer',
+            colors: { bg:'#222233', track:'#666677', border:'#444455', grass:'#2a3a2a' },
+            sections: [
+                { type:'straight', length:200 },
+                { type:'turn', angle:-90, radius:70 },
+                { type:'straight', length:150 },
+                { type:'turn', angle:-90, radius:70 },
+                { type:'straight', length:200 },
+                { type:'turn', angle:-90, radius:70 },
+                { type:'straight', length:150 },
+                { type:'turn', angle:-90, radius:70 },
+            ]
+        },
+        tri: {
+            name: 'Triangle Track', trackWidth: 70, lapCount: 3, walls: 'none',
+            colors: { bg:'#2a1a0a', track:'#7a6345', border:'#4a3020', grass:'#3a5a2a' },
+            sections: [
+                { type:'straight', length:250 },
+                { type:'turn', angle:-120, radius:80 },
+                { type:'straight', length:250 },
+                { type:'turn', angle:-120, radius:80 },
+                { type:'straight', length:250 },
+                { type:'turn', angle:-120, radius:80 },
+            ]
+        },
+        complex: {
+            name: 'Winding Road', trackWidth: 60, lapCount: 3, walls: 'outer',
+            colors: { bg:'#1a2a1a', track:'#6a7a5a', border:'#4a5a3a', grass:'#3a5a2a' },
+            sections: [
+                { type:'straight', length:100 },
+                { type:'turn', angle:60, radius:90 },
+                { type:'straight', length:80 },
+                { type:'turn', angle:-120, radius:70 },
+                { type:'straight', length:120 },
+                { type:'turn', angle:90, radius:100 },
+                { type:'straight', length:60 },
+                { type:'turn', angle:-90, radius:60 },
+                { type:'straight', length:140 },
+                { type:'turn', angle:-60, radius:110 },
+                { type:'straight', length:80 },
+                { type:'turn', angle:90, radius:80, walls:true },
+                { type:'turn', angle:-90, radius:60 },
+                { type:'straight', length:100 },
+                { type:'turn', angle:-60, radius:120 },
+            ]
+        },
+    };
+
+    function toggleDropdown() {
+        document.getElementById('tmplDrop').classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#tmplDrop'))
+            document.getElementById('tmplDrop').classList.remove('open');
+    });
+
+    // Initialise DEFAULT_NAMES now that TEMPLATES is defined
+    DEFAULT_NAMES = new Set(Object.values(TEMPLATES).map(t => t.name));
+    DEFAULT_NAMES.add('New Track');
+    DEFAULT_NAMES.add('Loaded Track');
+
+    function loadTemplate(key) {
+        const t = TEMPLATES[key]; if (!t) return;
+        document.getElementById('tmplDrop').classList.remove('open');
+        if (sections.length && !confirm('Replace current track with template?')) return;
+        applyDef({ ...t, startX:400, startY:500, startAngle:-90 });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Color helpers
+    // ═══════════════════════════════════════════════════════════
+    function hexToInt(hex) { return parseInt(hex.replace('#',''), 16); }
+    function toHex(v) {
+        if (typeof v === 'string') {
+            if (v.startsWith('#')) return v;
+            if (v.startsWith('0x')) return '#' + v.slice(2).padStart(6,'0');
+            return '#' + parseInt(v).toString(16).padStart(6,'0');
+        }
+        return '#' + v.toString(16).padStart(6,'0');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Tool switching
+    // ═══════════════════════════════════════════════════════════
+    function setTool(name) {
+        currentTool = name;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === name));
+        const canvas = document.getElementById('preview');
+        canvas.style.cursor = name === 'eraseWall' ? 'crosshair' : name === 'placeStart' ? 'cell' : name === 'freehand' ? 'crosshair' : 'default';
+        updatePreview();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Canvas mouse interactions
+    // ═══════════════════════════════════════════════════════════
+    (function() {
+        const canvas = document.getElementById('preview');
+        let hoveredWall = -1;
+
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (currentTool === 'eraseWall') {
+                if (!lastBuildResult || !lastBuildResult.walls.length) return;
+                const wi = findNearestWall(mx, my, 12);
+                if (wi >= 0) {
+                    if (erasedWalls.has(wi)) erasedWalls.delete(wi);
+                    else erasedWalls.add(wi);
+                    updatePreview();
+                }
+            } else if (currentTool === 'placeStart') {
+                if (!lastBuildResult || !lastBuildResult.waypoints.length) return;
+                // Find nearest waypoint to click
+                const trackX = lastTx.inv(mx), trackY = lastTy.inv(my);
+                let bestIdx = 0, bestD = Infinity;
+                for (let i = 0; i < lastBuildResult.waypoints.length; i++) {
+                    const wp = lastBuildResult.waypoints[i];
+                    const d = (wp[0] - trackX) ** 2 + (wp[1] - trackY) ** 2;
+                    if (d < bestD) { bestD = d; bestIdx = i; }
+                }
+                customStartLineIdx = bestIdx;
+                updatePreview();
+            } else if (currentTool === 'freehand') {
+                isDrawing = true;
+                freehandPts = [{ x: mx, y: my }];
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (currentTool === 'freehand' && isDrawing) {
+                freehandPts.push({ x: mx, y: my });
+                drawFreehandOverlay();
+            } else if (currentTool === 'eraseWall') {
+                const wi = findNearestWall(mx, my, 12);
+                if (wi !== hoveredWall) {
+                    hoveredWall = wi;
+                    updatePreview();
+                    if (wi >= 0) highlightWall(wi);
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            if (currentTool === 'freehand' && isDrawing) {
+                isDrawing = false;
+                if (freehandPts.length >= 3) freehandToSections(freehandPts);
+                freehandPts = [];
+                updatePreview();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            if (isDrawing) {
+                isDrawing = false;
+                if (freehandPts.length >= 3) freehandToSections(freehandPts);
+                freehandPts = [];
+                updatePreview();
+            }
+            hoveredWall = -1;
+        });
+
+        function findNearestWall(mx, my, maxDist) {
+            if (!lastBuildResult) return -1;
+            const walls = lastBuildResult.walls;
+            let best = -1, bestD = maxDist * maxDist;
+            for (let i = 0; i < walls.length; i++) {
+                const w = walls[i];
+                const sx = lastTx(w[0]), sy = lastTy(w[1]);
+                const ex = lastTx(w[2]), ey = lastTy(w[3]);
+                const d2 = ptSegDist2(mx, my, sx, sy, ex, ey);
+                if (d2 < bestD) { bestD = d2; best = i; }
+            }
+            return best;
+        }
+
+        function ptSegDist2(px, py, ax, ay, bx, by) {
+            const dx = bx-ax, dy = by-ay, l2 = dx*dx+dy*dy;
+            if (!l2) return (px-ax)*(px-ax)+(py-ay)*(py-ay);
+            let t = ((px-ax)*dx+(py-ay)*dy)/l2;
+            t = Math.max(0, Math.min(1, t));
+            const cx = ax+t*dx, cy = ay+t*dy;
+            return (px-cx)*(px-cx)+(py-cy)*(py-cy);
+        }
+
+        function highlightWall(wi) {
+            const ctx = canvas.getContext('2d');
+            const w = lastBuildResult.walls[wi];
+            ctx.save();
+            ctx.strokeStyle = erasedWalls.has(wi) ? '#00ff88' : '#ff0000';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(lastTx(w[0]), lastTy(w[1]));
+            ctx.lineTo(lastTx(w[2]), lastTy(w[3]));
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawFreehandOverlay() {
+            const ctx = canvas.getContext('2d');
+            if (freehandPts.length < 2) return;
+            ctx.save();
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(freehandPts[0].x, freehandPts[0].y);
+            for (let i = 1; i < freehandPts.length; i++)
+                ctx.lineTo(freehandPts[i].x, freehandPts[i].y);
+            ctx.stroke();
+            // Snap-to-close indicator: green circle on start when cursor is near
+            if (freehandPts.length > 10) {
+                const last = freehandPts[freehandPts.length - 1];
+                const dx = last.x - freehandPts[0].x, dy = last.y - freehandPts[0].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 40) {
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = '#00ff66';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(freehandPts[0].x, freehandPts[0].y, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = '#00ff66';
+                    ctx.globalAlpha = 0.3;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+            ctx.restore();
+        }
+    })();
+
+    // ═══════════════════════════════════════════════════════════
+    // Ramer-Douglas-Peucker line simplification
+    // ═══════════════════════════════════════════════════════════
+    function rdpSimplify(pts, epsilon) {
+        if (pts.length <= 2) return pts.slice();
+        // Find the point farthest from the line (first → last)
+        const first = pts[0], last = pts[pts.length - 1];
+        let maxDist = 0, maxIdx = 0;
+        const dx = last.x - first.x, dy = last.y - first.y;
+        const lenSq = dx * dx + dy * dy;
+        for (let i = 1; i < pts.length - 1; i++) {
+            let dist;
+            if (lenSq === 0) {
+                dist = Math.sqrt((pts[i].x - first.x) ** 2 + (pts[i].y - first.y) ** 2);
+            } else {
+                const t = Math.max(0, Math.min(1, ((pts[i].x - first.x) * dx + (pts[i].y - first.y) * dy) / lenSq));
+                const px = first.x + t * dx, py = first.y + t * dy;
+                dist = Math.sqrt((pts[i].x - px) ** 2 + (pts[i].y - py) ** 2);
+            }
+            if (dist > maxDist) { maxDist = dist; maxIdx = i; }
+        }
+        if (maxDist > epsilon) {
+            const left = rdpSimplify(pts.slice(0, maxIdx + 1), epsilon);
+            const right = rdpSimplify(pts.slice(maxIdx), epsilon);
+            return left.slice(0, -1).concat(right);
+        }
+        return [first, last];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Freehand → sections conversion
+    // ═══════════════════════════════════════════════════════════
+    function freehandToSections(pts) {
+        // Snap-to-close: check in screen coordinates (same as the green circle indicator)
+        const CLOSE_SCREEN_PX = 40;
+        let isClosed = false;
+        if (pts.length >= 10) {
+            const last = pts[pts.length - 1], first = pts[0];
+            const sd = Math.sqrt((last.x - first.x) ** 2 + (last.y - first.y) ** 2);
+            if (sd < CLOSE_SCREEN_PX) {
+                // Snap endpoint to start in screen coords before converting
+                pts[pts.length - 1] = { x: first.x, y: first.y };
+                isClosed = true;
+            }
+        }
+
+        // Convert screen points back to track coords
+        const tpts = pts.map(p => ({ x: lastTx.inv(p.x), y: lastTy.inv(p.y) }));
+        if (tpts.length < 4) return;
+
+        // ── 1. Close the loop: draw a line from end back to start ──
+        const first = tpts[0], last = tpts[tpts.length - 1];
+        const closeDist = Math.sqrt((last.x - first.x) ** 2 + (last.y - first.y) ** 2);
+        if (isClosed) {
+            // Insert evenly spaced points along a straight line from end → start
+            const n = Math.max(2, Math.round(closeDist / 10));
+            for (let i = 1; i <= n; i++) {
+                const t = i / n;
+                tpts.push({ x: last.x + (first.x - last.x) * t, y: last.y + (first.y - last.y) * t });
+            }
+        }
+
+        // ── 2. Simplify: Ramer-Douglas-Peucker ──
+        const simplified = rdpSimplify(tpts, 8);
+        if (simplified.length < 2) return;
+
+        // ── 3. Compute segment headings and lengths ──
+        const segs = [];
+        for (let i = 0; i < simplified.length - 1; i++) {
+            const dx = simplified[i+1].x - simplified[i].x;
+            const dy = simplified[i+1].y - simplified[i].y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const heading = Math.atan2(dy, dx);
+            segs.push({ len, heading });
+        }
+
+        // Build sections: merge consecutive segments with similar heading into straights,
+        // large heading changes become turns
+        if (!segs.length) return;
+
+        const newSections = [];
+        let accLen = segs[0].len;
+        const turnThreshold = 8 * Math.PI / 180; // 8 degrees
+
+        for (let i = 1; i < segs.length; i++) {
+            let dh = segs[i].heading - segs[i-1].heading;
+            // Normalize to -PI..PI
+            while (dh > Math.PI) dh -= 2*Math.PI;
+            while (dh < -Math.PI) dh += 2*Math.PI;
+
+            if (Math.abs(dh) < turnThreshold) {
+                // Continue the current straight
+                accLen += segs[i].len;
+            } else {
+                // Flush accumulated straight
+                if (accLen > 10) {
+                    newSections.push({ type: 'straight', length: Math.round(accLen), walls: false, hazards: [] });
+                }
+                // Add a turn
+                const angleDeg = Math.round(dh * 180 / Math.PI);
+                const radius = Math.max(40, Math.round(Math.min(segs[i].len, segs[i-1].len) * 1.2));
+                newSections.push({ type: 'turn', angle: angleDeg, radius: radius, walls: false, hazards: [] });
+                accLen = segs[i].len;
+            }
+        }
+        // Flush last straight
+        if (accLen > 10) {
+            newSections.push({ type: 'straight', length: Math.round(accLen), walls: false, hazards: [] });
+        }
+
+        // If auto-closed, add a final turn to smoothly reconnect to the first heading
+        if (isClosed && segs.length >= 2) {
+            let dh = segs[0].heading - segs[segs.length - 1].heading;
+            while (dh > Math.PI) dh -= 2 * Math.PI;
+            while (dh < -Math.PI) dh += 2 * Math.PI;
+            if (Math.abs(dh) > turnThreshold) {
+                const angleDeg = Math.round(dh * 180 / Math.PI);
+                const radius = Math.max(40, Math.round(segs[segs.length - 1].len * 1.2));
+                newSections.push({ type: 'turn', angle: angleDeg, radius: radius, walls: false, hazards: [] });
+            }
+        }
+
+        if (newSections.length === 0) return;
+
+        // Set the initial heading from the first segment
+        freehandStartAngle = Math.round(segs[0].heading * 180 / Math.PI);
+
+        // Replace current sections confirmation
+        if (sections.length > 0 && !confirm('Replace current sections with freehand drawing?')) return;
+        sections = newSections;
+        erasedWalls.clear();
+        customStartLineIdx = 0;
+        selIdx = -1;
+        renderSections();
+        updatePreview();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Keyboard shortcuts
+    // ═══════════════════════════════════════════════════════════
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.key === 's' || e.key === 'S') { e.preventDefault(); addSection('straight'); }
+        if (e.key === 't' || e.key === 'T') { e.preventDefault(); addSection('turn'); }
+        if (e.key === 'Delete' && selIdx >= 0) { delSection(selIdx); }
+        if (e.key === 'd' || e.key === 'D') { if (selIdx >= 0) dupSection(selIdx); }
+        if (e.key === 'ArrowUp' && e.ctrlKey && selIdx > 0) { e.preventDefault(); moveSection(selIdx, -1); }
+        if (e.key === 'ArrowDown' && e.ctrlKey && selIdx < sections.length-1) { e.preventDefault(); moveSection(selIdx, 1); }
+        if (e.key === 'ArrowUp' && !e.ctrlKey && selIdx > 0) { e.preventDefault(); selSection(selIdx-1); }
+        if (e.key === 'ArrowDown' && !e.ctrlKey && selIdx < sections.length-1) { e.preventDefault(); selSection(selIdx+1); }
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // Init — load oval template
+    // ═══════════════════════════════════════════════════════════
+    applyDef({ ...TEMPLATES.oval, startX:400, startY:500, startAngle:-90 });
+    </script>
+</body>
+</html>
