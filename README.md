@@ -14,8 +14,9 @@
 6. [Hazard Physics — Holes, Bumps, Water & Oil](#hazard-physics)
 7. [AI-Assisted Development — Reflections](#ai-assisted-development)
 8. [Architecture Overview](#architecture-overview)
-9. [How to Run](#how-to-run)
-10. [Credits](#credits)
+9. [Play Now](#play-now)
+10. [How to Run Locally](#how-to-run-locally)
+11. [Credits](#credits)
 
 ---
 
@@ -388,7 +389,11 @@ index.html
 
 ---
 
-## How to Run
+## Play Now
+
+**[▶ Play MegaV8 Off-Road](https://acorn-slayer.github.io/MegaV8_off-road/)** — runs directly in your browser, no install needed.
+
+## How to Run Locally
 
 1. Clone or download this repository
 2. Open the folder in VS Code
