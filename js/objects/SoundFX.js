@@ -60,6 +60,11 @@ class SoundFX {
     // ── Nitro pickup: deeper rising tone ───────────────────────
     playNitroPickup() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(200, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.2);
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
@@ -72,6 +77,9 @@ class SoundFX {
     // ── Crash / bump: short noise burst ────────────────────────
     playCrash() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+        const bufferSize = ctx.sampleRate * 0.15;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -92,6 +100,9 @@ class SoundFX {
     // ── Nitro boost: whoosh ────────────────────────────────────
     playBoost() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+        const bufferSize = ctx.sampleRate * 0.3;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -260,6 +271,9 @@ class SoundFX {
     // ── Lap complete: victory ding ─────────────────────────────
     playLapComplete() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+        const notes = [523, 659, 784]; // C5, E5, G5
         notes.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -276,6 +290,10 @@ class SoundFX {
     // ── Race start: Mario-style jingle ─────────────────────────
     playStartJingle() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+
+        // Classic Mario start-level fanfare (approximation)
         // E5 E5 rest E5 rest C5 E5 rest G5 rest rest G4
         const melody = [
             { freq: 659, time: 0.00,  dur: 0.10 },  // E5
@@ -446,6 +464,9 @@ class SoundFX {
     // ── Pre-race crowd applause (white noise burst) ────────────
     playApplause() {
         if (!this.enabled || GameState.sfxMuted) return;
+        this._ensureResumed();
+        const ctx = this.ctx;
+        const dur = 3;
         const bufferSize = ctx.sampleRate * dur;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
