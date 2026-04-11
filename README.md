@@ -395,13 +395,21 @@ index.html
 
 ## How to Run Locally
 
+> **Note:** Opening `index.html` directly from your file system (double-click) won't work — browsers block asset loading from `file://` for security reasons. You need a local web server.
+
+**Option A — VS Code + Live Server** (recommended):
 1. Clone or download this repository
-2. Open the folder in VS Code
-3. Install the **Live Server** extension
+2. Open the folder in [VS Code](https://code.visualstudio.com/)
+3. Install the [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension
 4. Right-click `index.html` → "Open with Live Server"
 5. Play at `http://localhost:5500`
 
-**Or** just open `index.html` directly in Chrome/Edge (some features need a local server for fetch).
+**Option B — Python one-liner:**
+```bash
+cd MegaV8_off-road
+python -m http.server 8000
+```
+Then open `http://localhost:8000` in your browser.
 
 ### Track Editor
 
