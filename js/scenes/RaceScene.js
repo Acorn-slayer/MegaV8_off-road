@@ -41,8 +41,8 @@ class RaceScene extends Phaser.Scene {
         );
         this.playerTruck.angle = startAngle;
 
-        // ── AI Opponents (with progressive boost + upgrades) ────
-        const aiBoost = GameState.getAiBoost();
+        // ── AI Opponents (with penalty that fades over races + upgrades) ──
+        const aiPenalty = GameState.getAiPenaltyMultiplier();
         this.aiTrucks = [];
         // Pick AI colors that differ from the player's truck
         const allAiColors = [0x3388ff, 0xffcc00, 0x33cc33, 0xff66cc, 0xff8800];
@@ -67,11 +67,15 @@ class RaceScene extends Phaser.Scene {
                 cfg.difficulty
             );
             ai.aiName = colorNames[cfg.color] || ('AI ' + (ci + 1));
-            // Apply AI progressive boost + upgrade bonus
+            // Apply upgrade bonus from AI purchases
             const upgradeBonus = GameState.getAiUpgradeBonus(ci);
-            ai.topSpeed += aiBoost.topSpeed + upgradeBonus.topSpeed;
-            ai.acceleration += aiBoost.acceleration + upgradeBonus.acceleration;
-            ai.handling += aiBoost.handling + upgradeBonus.handling;
+            ai.topSpeed += upgradeBonus.topSpeed;
+            ai.acceleration += upgradeBonus.acceleration;
+            ai.handling += upgradeBonus.handling;
+            // Apply fading penalty (75% at race 0 → 100% at race 10+)
+            ai.topSpeed *= aiPenalty;
+            ai.acceleration *= aiPenalty;
+            ai.handling *= aiPenalty;
             ai.angle = startAngle;
             ai.raceMoney = 0;
             this.aiTrucks.push(ai);
@@ -562,7 +566,7 @@ class RaceScene extends Phaser.Scene {
         const truck = this.playerTruck;
         const waypoints = this.track.waypoints;
         const len = waypoints.length;
-        const threshold = 40; // distance to "hit" a waypoint
+        const threshold = 60; // distance to "hit" a waypoint
 
         // Detect wrong way by comparing truck heading to track direction
         const expWp = waypoints[this.expectedWaypoint];
@@ -583,9 +587,9 @@ class RaceScene extends Phaser.Scene {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < threshold) {
-                // Accept waypoint if it's within a few steps forward of expected
+                // Accept waypoint if it's within a reasonable range forward of expected
                 const forwardDist = (i - this.expectedWaypoint + len) % len;
-                if (forwardDist <= 3) {
+                if (forwardDist <= 8) {
                     // Forward progress — accept it
                     this.waypointsHit.add(i);
                     this.expectedWaypoint = (i + 1) % len;
@@ -594,7 +598,7 @@ class RaceScene extends Phaser.Scene {
 
                 // If we're at start/finish and have hit enough waypoints
                 if (i === this.track.startLineIndex && this.canCrossFinish) {
-                    if (this.waypointsHit.size >= len * 0.6) {
+                    if (this.waypointsHit.size >= len * 0.4) {
                         this.completeLap();
                     }
                 }
@@ -782,6 +786,14 @@ class RaceScene extends Phaser.Scene {
 
     finishRace() {
         this.raceFinished = true;
+
+        // Freeze all AI trucks at their current positions
+        for (const ai of this.aiTrucks) {
+            if (!ai.raceFinished) {
+                ai.raceFinished = true;
+                ai.speed = 0;
+            }
+        }
 
         // Assign podium to player too if they placed top 3
         // (player always finishes here, so count how many AI finished before)

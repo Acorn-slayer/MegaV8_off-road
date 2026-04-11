@@ -49,11 +49,14 @@ const GameState = {
     },
     maxLevel: 10,
 
-    // AI progression: small boost to all AI stats each race
-    aiBoostPerRace: {
-        topSpeed:     3,
-        acceleration: 2,
-        handling:     0.04,
+    // AI penalty: starts at 25%, gradually fades to 0% over 10 races
+    aiStartPenalty: 0.25,
+    aiPenaltyFadeRaces: 10,
+
+    // Get AI penalty multiplier (0.75 at race 0, 1.0 at race 10+)
+    getAiPenaltyMultiplier() {
+        const fade = Math.min(this.raceNumber / this.aiPenaltyFadeRaces, 1);
+        return 1 - this.aiStartPenalty * (1 - fade);
     },
 
     // Get base stats for the selected truck color
@@ -69,24 +72,6 @@ const GameState = {
             acceleration: base.acceleration + this.upgrades.acceleration * this.perLevel.acceleration,
             handling:     base.handling     + this.upgrades.handling     * this.perLevel.handling,
             nitroMax:     base.nitro        + this.upgrades.nitro        * this.perLevel.nitro,
-        };
-    },
-
-    // Compute AI stat boost based on race number (capped so AI never exceeds player max)
-    getAiBoost() {
-        // Player max = highest preset base + maxLevel * perLevel
-        const maxTopSpeed = this.maxLevel * this.perLevel.topSpeed;       // 80
-        const maxAccel    = this.maxLevel * this.perLevel.acceleration;   // 60
-        const maxHandling = this.maxLevel * this.perLevel.handling;       // 1.2
-
-        const rawTS   = this.raceNumber * this.aiBoostPerRace.topSpeed;
-        const rawAcc  = this.raceNumber * this.aiBoostPerRace.acceleration;
-        const rawHand = this.raceNumber * this.aiBoostPerRace.handling;
-
-        return {
-            topSpeed:     Math.min(rawTS,   maxTopSpeed),
-            acceleration: Math.min(rawAcc,  maxAccel),
-            handling:     Math.min(rawHand, maxHandling),
         };
     },
 

@@ -8,9 +8,9 @@ class AiTruck extends BaseTruck {
 
         // Difficulty-specific overrides
         const stats = {
-            easy:   { topSpeed: 110, acceleration: 85, handling: 1.8, wobble: 0.6 },
-            medium: { topSpeed: 135, acceleration: 105, handling: 2.2, wobble: 0.4 },
-            hard:   { topSpeed: 145, acceleration: 115, handling: 2.4, wobble: 0.25 },
+            easy:   { topSpeed: 150, acceleration: 110, handling: 2.2, wobble: 0.5 },
+            medium: { topSpeed: 170, acceleration: 125, handling: 2.6, wobble: 0.35 },
+            hard:   { topSpeed: 185, acceleration: 140, handling: 2.8, wobble: 0.2 },
         };
         const s = stats[difficulty] || stats.medium;
 
@@ -40,7 +40,10 @@ class AiTruck extends BaseTruck {
     update(delta, waypoints, allTrucks) {
         const dt = delta / 1000;
         const len = waypoints.length;
-        const target = waypoints[this.currentWaypoint % len];
+
+        // When drifting, look further ahead to avoid oversteering
+        const lookAheadWp = this.driftAmount > 0.3 ? 2 : 0;
+        const target = waypoints[(this.currentWaypoint + lookAheadWp) % len];
 
         // Direction to target waypoint
         let dx = target[0] - this.x;
@@ -108,6 +111,15 @@ class AiTruck extends BaseTruck {
         // Acceleration (always accelerating)
         let accel = this.acceleration;
 
+        // Slow down when drifting — AI reacts to loss of grip
+        const driftPenalty = 1.0 - this.driftAmount * 0.6;
+        accel *= driftPenalty;
+
+        // If heavily drifting, actively brake to regain control
+        if (this.driftAmount > 0.5) {
+            this.speed *= (1.0 - this.driftAmount * 0.3 * dt * 10);
+        }
+
         // AI nitro usage (periodic bursts)
         this.nitroTimer += dt;
         if (this.nitroTimer >= this.nitroCooldown && this.nitroFuel > 0) {
@@ -128,9 +140,9 @@ class AiTruck extends BaseTruck {
             this.regenNitro(dt);
         }
 
-        // Slow down in turns
-        const turnFactor = 1.0 - Math.abs(angleDiff) * 0.3;
-        const effectiveTop = this.topSpeed * Math.max(turnFactor, 0.5);
+        // Slow down in turns (less aggressive penalty)
+        const turnFactor = 1.0 - Math.abs(angleDiff) * 0.2;
+        const effectiveTop = this.topSpeed * Math.max(turnFactor, 0.6);
         this.speed += accel * dt;
         this.speed = Phaser.Math.Clamp(this.speed, 0, effectiveTop);
 
