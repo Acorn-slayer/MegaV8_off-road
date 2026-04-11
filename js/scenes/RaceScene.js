@@ -394,7 +394,8 @@ class RaceScene extends Phaser.Scene {
 
         // M → toggle music on/off
         if (Phaser.Input.Keyboard.JustDown(this.musicKey)) {
-            if (soundFX.musicPlaying) {
+            GameState.musicMuted = !GameState.musicMuted;
+            if (GameState.musicMuted) {
                 soundFX.stopMusic();
             } else {
                 soundFX.startMusic();

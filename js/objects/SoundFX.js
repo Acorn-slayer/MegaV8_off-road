@@ -42,7 +42,7 @@ class SoundFX {
 
     // ── Coin pickup: bright chirp ──────────────────────────────
     playCoin() {
-        if (!this.enabled) return;
+        if (!this.enabled || GameState.sfxMuted) return;
         this._ensureResumed();
         const ctx = this.ctx;
         const osc = ctx.createOscillator();
@@ -59,12 +59,7 @@ class SoundFX {
 
     // ── Nitro pickup: deeper rising tone ───────────────────────
     playNitroPickup() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
+        if (!this.enabled || GameState.sfxMuted) return;
         osc.frequency.setValueAtTime(200, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.2);
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
@@ -76,10 +71,7 @@ class SoundFX {
 
     // ── Crash / bump: short noise burst ────────────────────────
     playCrash() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-        const bufferSize = ctx.sampleRate * 0.15;
+        if (!this.enabled || GameState.sfxMuted) return;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -99,10 +91,7 @@ class SoundFX {
 
     // ── Nitro boost: whoosh ────────────────────────────────────
     playBoost() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-        const bufferSize = ctx.sampleRate * 0.3;
+        if (!this.enabled || GameState.sfxMuted) return;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -123,7 +112,15 @@ class SoundFX {
 
     // ── Tire screech (continuous while drifting) ───────────────
     updateTireScreech(driftAmount) {
-        if (!this.enabled) return;
+        if (!this.enabled || GameState.sfxMuted) {
+            if (this._screechNode) {
+                this._screechNode.stop();
+                this._screechNode = null;
+                this._screechGain = null;
+                this._screechFilter = null;
+            }
+            return;
+        }
         if (driftAmount > 0.2) {
             if (!this._screechNode) {
                 this._ensureResumed();
@@ -163,7 +160,7 @@ class SoundFX {
     // ── Engine loop: real V8 sample with pitch shifting ───────
     // Uses a looped recording, playbackRate controls RPM
     async startEngine() {
-        if (!this.enabled || this.engineNode) return;
+        if (!this.enabled || GameState.sfxMuted || this.engineNode) return;
         this._ensureResumed();
         const ctx = this.ctx;
 
@@ -262,10 +259,7 @@ class SoundFX {
 
     // ── Lap complete: victory ding ─────────────────────────────
     playLapComplete() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-        const notes = [523, 659, 784]; // C5, E5, G5
+        if (!this.enabled || GameState.sfxMuted) return;
         notes.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -281,11 +275,7 @@ class SoundFX {
 
     // ── Race start: Mario-style jingle ─────────────────────────
     playStartJingle() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-
-        // Classic Mario start-level fanfare (approximation)
+        if (!this.enabled || GameState.sfxMuted) return;
         // E5 E5 rest E5 rest C5 E5 rest G5 rest rest G4
         const melody = [
             { freq: 659, time: 0.00,  dur: 0.10 },  // E5
@@ -314,7 +304,7 @@ class SoundFX {
     // ── Background music: Korobeiniki (Tetris Theme) ───────────
     // Traditional Russian folk song — public domain
     startMusic() {
-        if (!this.enabled || this.musicPlaying) return;
+        if (!this.enabled || this.musicPlaying || GameState.musicMuted) return;
         this._ensureResumed();
         this.musicPlaying = true;
         this.musicSpeedRatio = 0;
@@ -437,7 +427,7 @@ class SoundFX {
 
     // ── Countdown beep (high = red light, low = green light) ───
     playBeep(pitch) {
-        if (!this.enabled) return;
+        if (!this.enabled || GameState.sfxMuted) return;
         this._ensureResumed();
         const ctx = this.ctx;
         const freq = pitch === 'low' ? 880 : 440;
@@ -455,10 +445,7 @@ class SoundFX {
 
     // ── Pre-race crowd applause (white noise burst) ────────────
     playApplause() {
-        if (!this.enabled) return;
-        this._ensureResumed();
-        const ctx = this.ctx;
-        const dur = 3;
+        if (!this.enabled || GameState.sfxMuted) return;
         const bufferSize = ctx.sampleRate * dur;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
