@@ -8,9 +8,9 @@ class AiTruck extends BaseTruck {
 
         // Difficulty-specific overrides
         const stats = {
-            easy:   { topSpeed: 110, acceleration: 85, handling: 1.8, wobble: 0.6 },
-            medium: { topSpeed: 135, acceleration: 105, handling: 2.2, wobble: 0.4 },
-            hard:   { topSpeed: 145, acceleration: 115, handling: 2.4, wobble: 0.25 },
+            easy:   { topSpeed: 150, acceleration: 110, handling: 2.2, wobble: 0.5 },
+            medium: { topSpeed: 170, acceleration: 125, handling: 2.6, wobble: 0.35 },
+            hard:   { topSpeed: 185, acceleration: 140, handling: 2.8, wobble: 0.2 },
         };
         const s = stats[difficulty] || stats.medium;
 
@@ -128,9 +128,9 @@ class AiTruck extends BaseTruck {
             this.regenNitro(dt);
         }
 
-        // Slow down in turns
-        const turnFactor = 1.0 - Math.abs(angleDiff) * 0.3;
-        const effectiveTop = this.topSpeed * Math.max(turnFactor, 0.5);
+        // Slow down in turns (less aggressive penalty)
+        const turnFactor = 1.0 - Math.abs(angleDiff) * 0.2;
+        const effectiveTop = this.topSpeed * Math.max(turnFactor, 0.6);
         this.speed += accel * dt;
         this.speed = Phaser.Math.Clamp(this.speed, 0, effectiveTop);
 

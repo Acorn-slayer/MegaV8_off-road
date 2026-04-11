@@ -41,8 +41,8 @@ class RaceScene extends Phaser.Scene {
         );
         this.playerTruck.angle = startAngle;
 
-        // ── AI Opponents (with progressive boost + upgrades) ────
-        const aiBoost = GameState.getAiBoost();
+        // ── AI Opponents (with penalty that fades over races + upgrades) ──
+        const aiPenalty = GameState.getAiPenaltyMultiplier();
         this.aiTrucks = [];
         // Pick AI colors that differ from the player's truck
         const allAiColors = [0x3388ff, 0xffcc00, 0x33cc33, 0xff66cc, 0xff8800];
@@ -67,11 +67,15 @@ class RaceScene extends Phaser.Scene {
                 cfg.difficulty
             );
             ai.aiName = colorNames[cfg.color] || ('AI ' + (ci + 1));
-            // Apply AI progressive boost + upgrade bonus
+            // Apply upgrade bonus from AI purchases
             const upgradeBonus = GameState.getAiUpgradeBonus(ci);
-            ai.topSpeed += aiBoost.topSpeed + upgradeBonus.topSpeed;
-            ai.acceleration += aiBoost.acceleration + upgradeBonus.acceleration;
-            ai.handling += aiBoost.handling + upgradeBonus.handling;
+            ai.topSpeed += upgradeBonus.topSpeed;
+            ai.acceleration += upgradeBonus.acceleration;
+            ai.handling += upgradeBonus.handling;
+            // Apply fading penalty (75% at race 0 → 100% at race 10+)
+            ai.topSpeed *= aiPenalty;
+            ai.acceleration *= aiPenalty;
+            ai.handling *= aiPenalty;
             ai.angle = startAngle;
             ai.raceMoney = 0;
             this.aiTrucks.push(ai);

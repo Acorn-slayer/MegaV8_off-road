@@ -327,7 +327,29 @@ The AI tried increasingly complex approaches:
 
 **Key insight**: The human's simple geometric intuition ("connect the dots") beat the AI's complex algorithmic approaches.
 
-**3. Over-engineering before understanding**
+**3. AI difficulty balancing (the penalty multiplier)**
+
+When we got feedback that the AI opponents were too weak, the AI tried to fix it by:
+1. Adding per-stat bonuses that increased each race (+3 top speed, +2 acceleration...)
+2. Capping the bonuses so AI wouldn't exceed the player's max stats
+3. Capping against the player's *current* stats instead of max
+4. Three different cap formulas — each had edge cases
+
+Then Elliott said: **"Why not just make the AI slower at the start with a percentage penalty, and remove the penalty gradually?"**
+
+One multiplier. One formula. It replaces all the per-stat boost tracking, all the cap logic, all the edge cases:
+
+```
+penalty = 1 - 0.25 × (1 - raceNumber / 10)
+
+Race 0:  AI runs at 75% of full strength
+Race 5:  AI runs at 87.5%
+Race 10: AI runs at 100% — no penalty
+```
+
+The AI's approach kept adding complexity (boost values, caps, comparisons). The human's approach *removed* complexity — one number that fades from 0.75 to 1.0. Sometimes the best engineering is deleting code.
+
+**4. Over-engineering before understanding**
 
 The AI's tendency is to write a sophisticated solution. But for visual/spatial problems, the simplest approach — which a human can *see* immediately — often works best.
 
