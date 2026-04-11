@@ -135,6 +135,10 @@ class BootScene extends Phaser.Scene {
             this._loadGame(input);
         });
 
+        // ── Audio toggle buttons ──────────────────────────────────
+        this._createMuteToggle(290, 530, '🎵', 'MUSIC', 'musicMuted');
+        this._createMuteToggle(430, 530, '🔊', 'SFX', 'sfxMuted');
+
         // Enter key starts the game
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -145,6 +149,42 @@ class BootScene extends Phaser.Scene {
         // Clean up input if scene shuts down
         this.events.on('shutdown', () => {
             if (input.parentNode) input.remove();
+        });
+    }
+
+    _createMuteToggle(x, y, icon, label, stateKey) {
+        const isMuted = () => GameState[stateKey];
+        const gfx = this.add.graphics();
+        const w = 120, h = 32, r = 8;
+
+        const draw = () => {
+            gfx.clear();
+            gfx.fillStyle(isMuted() ? 0x662222 : 0x226622, 1);
+            gfx.fillRoundedRect(x, y, w, h, r);
+        };
+        draw();
+
+        const txt = this.add.text(x + w / 2, y + h / 2,
+            `${icon} ${label}: ${isMuted() ? 'OFF' : 'ON'}`, {
+            fontSize: '8px',
+            fontFamily: "'Press Start 2P', cursive",
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+
+        const zone = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+            GameState[stateKey] = !GameState[stateKey];
+            txt.setText(`${icon} ${label}: ${isMuted() ? 'OFF' : 'ON'}`);
+            draw();
+            // If music was just muted, stop it; if unmuted and engine running, restart
+            if (stateKey === 'musicMuted') {
+                if (GameState.musicMuted) soundFX.stopMusic();
+            }
+            if (stateKey === 'sfxMuted') {
+                if (GameState.sfxMuted) soundFX.stopEngine();
+            }
         });
     }
 

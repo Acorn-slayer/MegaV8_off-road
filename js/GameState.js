@@ -1,6 +1,10 @@
 // GameState — Persistent state across races (player upgrades, AI progression, money)
 
 const GameState = {
+    // Audio preferences
+    musicMuted: false,
+    sfxMuted: false,
+
     // Player
     money: 0,
     raceNumber: 0,
@@ -188,6 +192,8 @@ const GameState = {
                 player: this.championshipPoints.player,
                 ai: [...this.championshipPoints.ai]
             },
+            musicMuted: this.musicMuted,
+            sfxMuted: this.sfxMuted,
         }, null, 2);
     },
 
@@ -210,5 +216,7 @@ const GameState = {
         if (s.championshipPoints) {
             this.championshipPoints = s.championshipPoints;
         }
+        this.musicMuted = s.musicMuted || false;
+        this.sfxMuted = s.sfxMuted || false;
     },
 };
