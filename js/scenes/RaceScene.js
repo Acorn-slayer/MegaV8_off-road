@@ -398,7 +398,8 @@ class RaceScene extends Phaser.Scene {
 
         // M → toggle music on/off
         if (Phaser.Input.Keyboard.JustDown(this.musicKey)) {
-            if (soundFX.musicPlaying) {
+            GameState.musicMuted = !GameState.musicMuted;
+            if (GameState.musicMuted) {
                 soundFX.stopMusic();
             } else {
                 soundFX.startMusic();
@@ -565,7 +566,7 @@ class RaceScene extends Phaser.Scene {
         const truck = this.playerTruck;
         const waypoints = this.track.waypoints;
         const len = waypoints.length;
-        const threshold = 40; // distance to "hit" a waypoint
+        const threshold = 60; // distance to "hit" a waypoint
 
         // Detect wrong way by comparing truck heading to track direction
         const expWp = waypoints[this.expectedWaypoint];
@@ -586,9 +587,9 @@ class RaceScene extends Phaser.Scene {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < threshold) {
-                // Accept waypoint if it's within a few steps forward of expected
+                // Accept waypoint if it's within a reasonable range forward of expected
                 const forwardDist = (i - this.expectedWaypoint + len) % len;
-                if (forwardDist <= 3) {
+                if (forwardDist <= 8) {
                     // Forward progress — accept it
                     this.waypointsHit.add(i);
                     this.expectedWaypoint = (i + 1) % len;
@@ -597,7 +598,7 @@ class RaceScene extends Phaser.Scene {
 
                 // If we're at start/finish and have hit enough waypoints
                 if (i === this.track.startLineIndex && this.canCrossFinish) {
-                    if (this.waypointsHit.size >= len * 0.6) {
+                    if (this.waypointsHit.size >= len * 0.4) {
                         this.completeLap();
                     }
                 }
@@ -785,6 +786,14 @@ class RaceScene extends Phaser.Scene {
 
     finishRace() {
         this.raceFinished = true;
+
+        // Freeze all AI trucks at their current positions
+        for (const ai of this.aiTrucks) {
+            if (!ai.raceFinished) {
+                ai.raceFinished = true;
+                ai.speed = 0;
+            }
+        }
 
         // Assign podium to player too if they placed top 3
         // (player always finishes here, so count how many AI finished before)

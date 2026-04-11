@@ -1,6 +1,10 @@
 # MEGA V8 OFF ROAD — Elliott Edition
 
-**A browser-based top-down racing game inspired by the classic 1989 arcade game *Super Off Road*, built entirely through human-AI collaboration for a science fair project.**
+**A racing game I made for my Grade 5 science fair!** You drive off-road trucks, collect coins, buy upgrades, and race against AI opponents — all in your browser.
+
+It's inspired by *Super Off Road*, a classic arcade game from 1989. I built it with my dad using an AI coding assistant (GitHub Copilot / Claude) to explore how kids and AI can create real software together.
+
+**[▶ Play it right now!](https://acorn-slayer.github.io/MegaV8_off-road/)** — no download needed, just click and race.
 
 ---
 
@@ -9,36 +13,39 @@
 1. [What is This Project?](#what-is-this-project)
 2. [Game Features](#game-features)
 3. [How to Play](#how-to-play)
-4. [Technical Deep Dive: Track Geometry](#technical-deep-dive-track-geometry)
-5. [The Wall Problem — A Case Study in Computational Geometry](#the-wall-problem)
-6. [Hazard Physics — Holes, Bumps, Water & Oil](#hazard-physics)
-7. [AI-Assisted Development — Reflections](#ai-assisted-development)
-8. [Architecture Overview](#architecture-overview)
-9. [Play Now](#play-now)
-10. [How to Run Locally](#how-to-run-locally)
-11. [Credits](#credits)
+4. [How the Tracks Are Made](#technical-deep-dive-track-geometry) — *for curious readers*
+5. [The Wall Problem](#the-wall-problem) — *a tricky bug we had to solve*
+6. [Hazard Physics](#hazard-physics) — *math that makes the game feel real*
+7. [Working with AI](#ai-assisted-development) — *what we learned*
+8. [Architecture Overview](#architecture-overview) — *how the code is organized*
+9. [How to Run Locally](#how-to-run-locally)
+10. [Credits](#credits)
 
 ---
 
 ## What is This Project?
 
-Super Off Road (1989, Leland Corporation) was a legendary top-down dirt racing game. Players raced trucks, collected money, used nitro boosts, and upgraded their vehicles between races.
+Have you ever played a racing game where you look down at the cars from above? That's what *Super Off Road* was — a famous arcade game from 1989 where you raced trucks on dirt tracks, picked up nitro boosts, and upgraded your vehicle between races.
 
-This project recreates that experience as a modern **HTML5 web game** — playable on any device with a browser. It was built as a collaboration between a human designer (Elliott's dad) and an AI coding assistant (GitHub Copilot / Claude), exploring what's possible when human creativity meets AI engineering.
+I wanted to build my own version! This game runs in any web browser (Chrome, Edge, Safari...) on computers and iPads. My dad helped me design it, and we used an AI coding assistant to write the code — kind of like having a super-fast programmer teammate who never gets tired but also can't see the screen.
+
+**Why is this a science fair project?** Because we wanted to find out: *what happens when a human and an AI build a real game together?* What's easy? What's hard? Where does the AI mess up? You'll find out in the sections below!
 
 ---
 
 ## Game Features
 
-- 🏎️ Top-down racing with 4 trucks (1 player + 3 AI)
-- 🏁 Multiple tracks loaded from JSON descriptors
-- ✏️ Built-in Track Editor with freehand drawing
-- 🔧 Upgrade shop: speed, acceleration, handling, nitro
-- 🏆 Championship mode with shuffled track order
-- 💾 Save/load game progress (`.v8t` files)
-- 🎮 Touch controls (iPad) + keyboard (desktop)
-- 🧱 Alternating red/white race-track wall curbs
-- 🎵 Engine sounds + background music (Web Audio API)
+Here's what you can do in the game:
+
+- 🏎️ Race 4 trucks on dirt tracks (you + 3 AI opponents)
+- 🏁 Pick from multiple tracks — or make your own!
+- ✏️ Built-in Track Editor — draw tracks with your finger or mouse
+- 🔧 Upgrade shop — make your truck faster, better handling, more nitro
+- 🏆 Championship mode — race all tracks and see who wins overall
+- 💾 Save and load your game progress
+- 🎮 Works on iPad (touch) and desktop (keyboard)
+- 🧱 Real-looking track walls with red and white curbs
+- 🎵 Engine sounds and background music
 
 ---
 
@@ -56,6 +63,10 @@ This project recreates that experience as a modern **HTML5 web game** — playab
 ---
 
 ## Technical Deep Dive: Track Geometry
+
+> **In simple words:** Tracks are built by telling the computer "go straight, then turn right, then go straight again" — like giving directions to a robot turtle. The computer figures out where to draw the road and put the walls. The tricky part is making sure the walls look smooth on curves!
+>
+> *The sections below explain the math behind it. Feel free to skip ahead if it gets too technical!*
 
 ### How Tracks Are Built — Turtle Graphics
 
@@ -132,6 +143,8 @@ Too few steps → gaps between wall segments on the outer edge:
 
 ## The Wall Problem
 
+> **In simple words:** When a track folds back on itself (like a hairpin turn), the walls from one part of the track can end up *inside* another part. Your truck hits an invisible wall in the middle of what looks like open road! We tried 6 different ways to fix this with code, and none of them worked perfectly. In the end, the best solution was to build a tool that lets you click on the bad walls and delete them by hand.
+
 ### A Case Study in Computational Geometry
 
 One of the most challenging problems in this project was **wall overlap at tight turns**. When the track doubles back on itself (like a hairpin or S-curve), walls from different sections can end up **inside the track surface of another section**:
@@ -188,6 +201,8 @@ This is a real-world engineering lesson: **sometimes the best solution isn't mor
 ---
 
 ## Hazard Physics
+
+> **In simple words:** The tracks have water puddles, holes, bumps, and oil slicks that affect your truck differently. We used a cool math trick (a sine curve) so that hitting the *edge* of a hole pulls you sideways, but driving right over the *center* doesn't — just like in real life! No complicated `if/else` code needed, just one formula.
 
 ### Making Holes and Bumps Feel Real with Math
 
@@ -272,18 +287,20 @@ The sine function naturally gives us the bell shape we need, and `atan2` natural
 
 ## AI-Assisted Development
 
-### Reflections on Human-AI Collaboration
+> **In simple words:** We used an AI assistant to write most of the code. It's *amazingly* fast at writing code, but it can't see the game, so it can't tell if something looks wrong. We had to test everything ourselves and tell it what to fix. Sometimes it tried the same wrong idea over and over, and we had to be the ones to say "stop, let's try something completely different."
+
+### What We Learned About Working with AI
 
 This entire game was built through conversation between a human and an AI coding assistant. Here are honest reflections on what worked, what didn't, and what we learned.
 
-### What the AI Can Do Well
+### What the AI Does Well
 
-- **Generate boilerplate fast**: Scene classes, physics loops, UI layouts — the AI can scaffold hundreds of lines of working code in seconds
-- **Implement known algorithms**: Ramer-Douglas-Peucker line simplification, point-to-segment distance, turtle graphics — well-documented algorithms are implemented correctly on the first try
-- **Refactor confidently**: Extracting a base class, renaming across files, restructuring inheritance — the AI handles mechanical refactoring reliably
-- **Iterate on feedback**: "Make the walls thinner", "alternate red and white" — small, clear requests produce correct changes quickly
+- **Writes code fast**: Entire game scenes, physics, menus — hundreds of lines in seconds
+- **Knows standard algorithms**: Math formulas, known techniques — it gets them right on the first try
+- **Handles boring refactoring**: Renaming things, reorganizing files — it does it without mistakes
+- **Responds to clear feedback**: "Make the walls thinner" or "change the color" → done instantly
 
-### The Fundamental Limitation: The AI Cannot See
+### The Big Limitation: The AI Can't See the Game
 
 The AI has **no visual output**. It cannot see the game running. It cannot see:
 - Whether a track looks right or is distorted
@@ -308,7 +325,7 @@ The AI has **no visual output**. It cannot see the game running. It cannot see:
 
 Sometimes the description is ambiguous. "It destroyed part of my drawing" — destroyed from the beginning? The end? The human has to investigate and report back.
 
-### Where the AI Struggled Most
+### Where the AI Kept Getting It Wrong
 
 **1. Geometry bugs requiring visual feedback**
 
@@ -353,21 +370,23 @@ The AI's approach kept adding complexity (boost values, caps, comparisons). The 
 
 The AI's tendency is to write a sophisticated solution. But for visual/spatial problems, the simplest approach — which a human can *see* immediately — often works best.
 
-### Lessons for the Science Fair
+### What We'd Tell Other Kids
 
-1. **AI is a powerful tool, not a replacement for thinking.** The human provides direction, creativity, and visual verification. The AI provides speed, consistency, and implementation.
+1. **AI is a tool, not a brain.** You still need to think, test, and make decisions. The AI writes code fast but it doesn't understand *why* something looks wrong.
 
-2. **Communication is the bottleneck.** The better you describe a problem, the better the AI can solve it. Vague descriptions lead to wrong solutions.
+2. **Describe problems clearly.** The better you explain what's happening, the better the AI can help. "It looks weird" doesn't help — "the wall has a gap on the right side of big turns" does.
 
-3. **Know when to change approach.** Six failed attempts at wall culling taught us that knowing when to abandon an approach is as important as knowing how to code one.
+3. **Don't let the AI go in circles.** When it tried 6 different algorithms for the wall problem and none worked, we should have stopped sooner and tried a completely different approach. Knowing when to say "this isn't working, let's do something else" is a real skill.
 
-4. **Simple beats clever.** The freehand loop closing, the wall eraser tool, the "just draw a line" approach — the winning solutions were always the simplest ones.
+4. **Simple ideas often win.** We suggested "just draw a line between the start and end" for the loop-closing problem. The AI had tried 4 complicated solutions. The simple one worked first try.
 
-5. **AI excels at the mechanical, humans excel at the spatial.** Let each do what they're best at.
+5. **Play to your strengths.** The AI is great at writing code. Humans are great at looking at things and saying "that's not right." Let each do what they're good at.
 
 ---
 
 ## Architecture Overview
+
+> **In simple words:** Here's how the game's files are organized. Each file has a specific job — one handles the trucks, one handles the race, one handles the shop, etc. If you want to look at the code or change something, this map tells you where to look.
 
 ```
 index.html
@@ -411,19 +430,23 @@ index.html
 
 ---
 
-## Play Now
-
-**[▶ Play MegaV8 Off-Road](https://acorn-slayer.github.io/MegaV8_off-road/)** — runs directly in your browser, no install needed.
-
 ## How to Run Locally
 
+> **Note:** Opening `index.html` directly from your file system (double-click) won't work — browsers block asset loading from `file://` for security reasons. You need a local web server.
+
+**Option A — VS Code + Live Server** (recommended):
 1. Clone or download this repository
-2. Open the folder in VS Code
-3. Install the **Live Server** extension
+2. Open the folder in [VS Code](https://code.visualstudio.com/)
+3. Install the [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension
 4. Right-click `index.html` → "Open with Live Server"
 5. Play at `http://localhost:5500`
 
-**Or** just open `index.html` directly in Chrome/Edge (some features need a local server for fetch).
+**Option B — Python one-liner:**
+```bash
+cd MegaV8_off-road
+python -m http.server 8000
+```
+Then open `http://localhost:8000` in your browser.
 
 ### Track Editor
 
@@ -435,8 +458,8 @@ Open `track_editor.html` in a browser. Draw tracks with freehand or build sectio
 
 - Inspired by *Super Off Road* (1989) by Leland Corporation
 - Built with [Phaser 3](https://phaser.io) (v3.80.1)
-- Created by **Elliott** — Science Fair 2026
-- AI-assisted development using GitHub Copilot (Claude)
+- Created by **Elliott** (Grade 5, age 10) — Science Fair 2026
+- With help from dad and an AI coding assistant (GitHub Copilot / Claude)
 
 ## License
 
