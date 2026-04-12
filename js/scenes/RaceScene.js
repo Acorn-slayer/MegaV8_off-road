@@ -137,40 +137,40 @@ class RaceScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 3
         };
 
-        this.lapText = this.add.text(400, 10, '', {
+        this.lapText = this.add.text(640, 10, '', {
             ...hudStyle, fontSize: '18px', color: '#ffcc00'
-        }).setOrigin(0.5, 0).setDepth(900);
+        }).setOrigin(0.5, 0).setDepth(900).setScrollFactor(0);
 
-        this.timerText = this.add.text(400, 32, '', {
+        this.timerText = this.add.text(640, 32, '', {
             ...hudStyle, fontSize: '14px', color: '#cccccc'
-        }).setOrigin(0.5, 0).setDepth(900);
+        }).setOrigin(0.5, 0).setDepth(900).setScrollFactor(0);
 
-        this.speedText = this.add.text(10, 10, '', hudStyle).setDepth(900);
+        this.speedText = this.add.text(10, 10, '', hudStyle).setDepth(900).setScrollFactor(0);
 
         this.nitroText = this.add.text(10, 30, '', {
             ...hudStyle, color: '#00ccff'
-        }).setDepth(900);
+        }).setDepth(900).setScrollFactor(0);
 
-        this.moneyText = this.add.text(790, 10, '', {
+        this.moneyText = this.add.text(1270, 10, '', {
             ...hudStyle, color: '#ffcc00'
-        }).setOrigin(1, 0).setDepth(900);
+        }).setOrigin(1, 0).setDepth(900).setScrollFactor(0);
 
-        this.offTrackText = this.add.text(400, 55, '', {
+        this.offTrackText = this.add.text(640, 55, '', {
             ...hudStyle, fontSize: '16px', color: '#ff4444'
-        }).setOrigin(0.5).setDepth(900);
+        }).setOrigin(0.5).setDepth(900).setScrollFactor(0);
 
-        this.bestLapText = this.add.text(790, 30, '', {
+        this.bestLapText = this.add.text(1270, 30, '', {
             ...hudStyle, fontSize: '12px', color: '#00ff88'
-        }).setOrigin(1, 0).setDepth(900);
+        }).setOrigin(1, 0).setDepth(900).setScrollFactor(0);
 
         this.positionText = this.add.text(10, 50, '', {
             ...hudStyle, fontSize: '16px', color: '#ffcc00'
-        }).setDepth(900);
+        }).setDepth(900).setScrollFactor(0);
 
-        this.messageText = this.add.text(400, 300, '', {
+        this.messageText = this.add.text(640, 360, '', {
             fontSize: '32px', fontFamily: 'Arial Black, Arial, sans-serif',
             color: '#ffffff', stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5).setDepth(950).setAlpha(0);
+        }).setOrigin(0.5).setDepth(950).setAlpha(0).setScrollFactor(0);
 
         // ── Create dust particle texture ─────────────────────────
         if (!this.textures.exists('dustParticle')) {
@@ -226,18 +226,24 @@ class RaceScene extends Phaser.Scene {
         soundFX.init();  // ensure audio context is created & resumed
         this._lastBoostState = false;
 
+        // ── Camera follow (Micro Machines style) ────────────────
+        const worldW = this.track.worldW || 3200;
+        const worldH = this.track.worldH || 1800;
+        this.cameras.main.setBounds(0, 0, worldW, worldH);
+        this.cameras.main.startFollow(this.playerTruck, true, 0.09, 0.09);
+
         // ── Pre-race countdown with traffic lights ──────────────
         this._startCountdown();
     }
 
     _startCountdown() {
-        const cx = 400, cy = 200;
+        const cx = 640, cy = 200;
         const lightR = 22;
         const lightGap = 55;
         const bgW = 80, bgH = 180;
 
         // Background box for lights
-        const lightBg = this.add.graphics().setDepth(1000);
+        const lightBg = this.add.graphics().setDepth(1000).setScrollFactor(0);
         lightBg.fillStyle(0x222222, 0.9);
         lightBg.fillRoundedRect(cx - bgW / 2, cy - bgH / 2, bgW, bgH, 10);
         lightBg.lineStyle(3, 0x444444, 1);
@@ -246,7 +252,7 @@ class RaceScene extends Phaser.Scene {
         // Three light circles (dim)
         const lights = [];
         for (let i = 0; i < 3; i++) {
-            const g = this.add.graphics().setDepth(1001);
+            const g = this.add.graphics().setDepth(1001).setScrollFactor(0);
             const ly = cy - lightGap + i * lightGap;
             g.fillStyle(0x333333, 1);
             g.fillCircle(cx, ly, lightR);
@@ -752,9 +758,10 @@ class RaceScene extends Phaser.Scene {
         const slot = this._podiumNextSlot++;
         if (slot >= 3) return; // only 3 podium slots; 4th place stays on track
 
-        // Podium on the right side of the screen
-        const podiumX = 750;
-        const podiumY = 80 + slot * 60;
+        // Podium position: near the start line so it's visible
+        const startWp = this.track.waypoints[this.track.startLineIndex];
+        const podiumX = startWp[0] + 120;
+        const podiumY = startWp[1] - 100 + slot * 60;
         truck._podiumTarget = { x: podiumX, y: podiumY };
 
         // Draw podium visual for this slot
@@ -762,9 +769,10 @@ class RaceScene extends Phaser.Scene {
     }
 
     _drawPodiumSlot(slot, truck) {
-        // Draw podium block + position label
+        // Draw podium block + position label near start line
         const gfx = this.add.graphics().setDepth(900);
-        const px = 750, py = 80 + slot * 60;
+        const startWp = this.track.waypoints[this.track.startLineIndex];
+        const px = startWp[0] + 120, py = startWp[1] - 100 + slot * 60;
         const heights = [40, 30, 22]; // 1st tallest
         const colors = [0xffd700, 0xc0c0c0, 0xcd7f32]; // gold, silver, bronze
         const labels = ['1st', '2nd', '3rd'];
@@ -799,7 +807,8 @@ class RaceScene extends Phaser.Scene {
         // (player always finishes here, so count how many AI finished before)
         const playerSlot = this._podiumNextSlot++;
         if (playerSlot < 3) {
-            this.playerTruck._podiumTarget = { x: 750, y: 80 + playerSlot * 60 };
+            const startWp = this.track.waypoints[this.track.startLineIndex];
+            this.playerTruck._podiumTarget = { x: startWp[0] + 120, y: startWp[1] - 100 + playerSlot * 60 };
             this._drawPodiumSlot(playerSlot, this.playerTruck);
         }
 
@@ -872,13 +881,13 @@ class RaceScene extends Phaser.Scene {
     }
 
     showResults() {
-        // Dim overlay
+        // Dim overlay (covers viewport, not world)
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, 800, 600);
-        overlay.setDepth(980);
+        overlay.fillRect(0, 0, 1280, 720);
+        overlay.setDepth(980).setScrollFactor(0);
 
-        const cx = 400, cy = 300;
+        const cx = 640, cy = 360;
         const style = {
             fontSize: '20px', fontFamily: 'Arial, sans-serif', color: '#ffffff',
             stroke: '#000000', strokeThickness: 4
@@ -887,31 +896,31 @@ class RaceScene extends Phaser.Scene {
         this.add.text(cx, cy - 130, 'RACE RESULTS', {
             ...style, fontSize: '32px', color: '#ffcc00',
             fontFamily: 'Arial Black, Arial, sans-serif'
-        }).setOrigin(0.5).setDepth(990);
+        }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
 
         // Position
         const posLabels = ['1ST', '2ND', '3RD', '4TH'];
         const posColors = ['#ffcc00', '#cccccc', '#cc8844', '#888888'];
         this.add.text(cx, cy - 80, `You finished ${posLabels[this.playerPosition - 1]}!`, {
             ...style, fontSize: '24px', color: posColors[this.playerPosition - 1]
-        }).setOrigin(0.5).setDepth(990);
+        }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
 
         // Position bonus
         const posBonus = GameState.positionBonus[this.playerPosition - 1] || 0;
         if (posBonus > 0) {
             this.add.text(cx, cy - 50, `Position bonus: +$${posBonus}`, {
                 ...style, fontSize: '14px', color: '#00ff88'
-            }).setOrigin(0.5).setDepth(990);
+            }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
         }
 
         this.add.text(cx, cy - 20, `Total Time: ${this.formatTime(this.raceTime)}`, style)
-            .setOrigin(0.5).setDepth(990);
+            .setOrigin(0.5).setDepth(990).setScrollFactor(0);
         this.add.text(cx, cy + 10, `Best Lap: ${this.formatTime(this.bestLapTime)}`, {
             ...style, color: '#00ff88'
-        }).setOrigin(0.5).setDepth(990);
+        }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
         this.add.text(cx, cy + 40, `Money Earned: $${this.money}`, {
             ...style, color: '#ffcc00'
-        }).setOrigin(0.5).setDepth(990);
+        }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
 
         // Championship standings
         if (GameState.gameMode === 'championship') {
@@ -920,10 +929,10 @@ class RaceScene extends Phaser.Scene {
             const totalRaces = GameState.tracks.length;
             this.add.text(cx, cy + 75, `Championship: Race ${raceIdx} / ${totalRaces}`, {
                 ...style, fontSize: '14px', color: '#aaaaaa'
-            }).setOrigin(0.5).setDepth(990);
+            }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
             this.add.text(cx, cy + 95, `Points: ${GameState.playerName}: ${pts.player}  |  Blue: ${pts.ai[0]}  |  Yellow: ${pts.ai[1]}  |  Green: ${pts.ai[2]}`, {
                 ...style, fontSize: '11px', color: '#cccccc'
-            }).setOrigin(0.5).setDepth(990);
+            }).setOrigin(0.5).setDepth(990).setScrollFactor(0);
         }
 
         const isChamp = GameState.gameMode === 'championship';
@@ -940,7 +949,7 @@ class RaceScene extends Phaser.Scene {
 
             const continueLabel = isLastChampRace ? '🏆 RESULTS' : '▶ CONTINUE';
             const continueBtn = this.add.text(cx, cy + 120, continueLabel, btnStyle)
-                .setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+                .setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
             continueBtn.on('pointerover', () => continueBtn.setStyle(hoverStyle));
             continueBtn.on('pointerout', () => continueBtn.setStyle(outStyle));
             continueBtn.on('pointerdown', () => {
@@ -961,7 +970,7 @@ class RaceScene extends Phaser.Scene {
             });
 
             const garageBtn = this.add.text(cx, cy + 155, '🔧 GARAGE', btnStyle)
-                .setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+                .setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
             garageBtn.on('pointerover', () => garageBtn.setStyle(hoverStyle));
             garageBtn.on('pointerout', () => garageBtn.setStyle(outStyle));
             garageBtn.on('pointerdown', () => {
@@ -971,14 +980,14 @@ class RaceScene extends Phaser.Scene {
             });
 
             const saveBtn = this.add.text(cx, cy + 190, '💾 SAVE', btnStyle)
-                .setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+                .setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
             saveBtn.on('pointerover', () => saveBtn.setStyle(hoverStyle));
             saveBtn.on('pointerout', () => saveBtn.setStyle(outStyle));
             saveBtn.on('pointerdown', () => { this._champSaveGame(saveBtn); });
 
             const quitBtn = this.add.text(cx, cy + 225, '🚪 QUIT CHAMPIONSHIP', {
                 ...btnStyle, color: '#ff6666'
-            }).setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+            }).setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
             quitBtn.on('pointerover', () => quitBtn.setStyle({ backgroundColor: '#5a1a1a' }));
             quitBtn.on('pointerout', () => quitBtn.setStyle(outStyle));
             quitBtn.on('pointerdown', () => {
@@ -992,9 +1001,9 @@ class RaceScene extends Phaser.Scene {
                 backgroundColor: '#0f3460', padding: { x: 20, y: 10 } };
 
             const replayBtn = this.add.text(cx - 110, cy + 130, '🔄 REPLAY', btnStyle)
-                .setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+                .setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
             const menuBtn = this.add.text(cx + 110, cy + 130, '🏠 MENU', btnStyle)
-                .setOrigin(0.5).setDepth(990).setInteractive({ useHandCursor: true });
+                .setOrigin(0.5).setDepth(990).setScrollFactor(0).setInteractive({ useHandCursor: true });
 
             replayBtn.on('pointerover', () => replayBtn.setStyle({ backgroundColor: '#1a5276' }));
             replayBtn.on('pointerout', () => replayBtn.setStyle({ backgroundColor: '#0f3460' }));
@@ -1097,9 +1106,11 @@ class RaceScene extends Phaser.Scene {
     // ── Background ──────────────────────────────────────────────
     drawBackground() {
         const gfx = this.add.graphics();
-        // Fill entire area with grass/dirt surround
+        const wW = this.track.worldW || 3200;
+        const wH = this.track.worldH || 1800;
+        // Fill entire world area with grass/dirt surround
         gfx.fillStyle(this.track.grassColor, 1);
-        gfx.fillRect(0, 0, 800, 600);
+        gfx.fillRect(0, 0, wW, wH);
     }
 
     // ── Walls (defined as line segments in track data) ──────────
@@ -1202,8 +1213,8 @@ class RaceScene extends Phaser.Scene {
 
         // Use a canvas texture with round line joins (same technique as the editor)
         // This avoids the zebra-circle artifacts from Phaser's miter joins
-        const W = this.sys.game.config.width;
-        const H = this.sys.game.config.height;
+        const W = this.track.worldW || 3200;
+        const H = this.track.worldH || 1800;
 
         // Remove previous track texture if it exists (e.g. restart)
         if (this.textures.exists('_trackSurface')) {

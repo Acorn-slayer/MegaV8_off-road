@@ -149,9 +149,11 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        // Bounds
-        this.x = Phaser.Math.Clamp(this.x, 10, 790);
-        this.y = Phaser.Math.Clamp(this.y, 10, 590);
+        // Bounds (use track world dimensions if available)
+        const bW = (this.scene && this.scene.track && this.scene.track.worldW) || 3200;
+        const bH = (this.scene && this.scene.track && this.scene.track.worldH) || 1800;
+        this.x = Phaser.Math.Clamp(this.x, 10, bW - 10);
+        this.y = Phaser.Math.Clamp(this.y, 10, bH - 10);
 
         // Rotate graphic — show truck body rotated by heading (not velocity)
         this.truckGraphics.rotation = this.angle + Math.PI / 2;

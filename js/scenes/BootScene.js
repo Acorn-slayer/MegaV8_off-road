@@ -20,15 +20,15 @@ class BootScene extends Phaser.Scene {
 
     _buildScreen() {
         // Background image
-        const bg = this.add.image(400, 300, 'titleBg');
-        bg.setDisplaySize(800, 600);
+        const bg = this.add.image(640, 360, 'titleBg');
+        bg.setDisplaySize(1280, 720);
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.5);
-        overlay.fillRect(0, 0, 800, 600);
+        overlay.fillRect(0, 0, 1280, 720);
 
         // Title
-        this.add.text(400, 140, 'MEGA V8\nOFF ROAD', {
+        this.add.text(640, 170, 'MEGA V8\nOFF ROAD', {
             fontSize: '36px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffcc00',
@@ -38,14 +38,14 @@ class BootScene extends Phaser.Scene {
             lineSpacing: 12
         }).setOrigin(0.5);
 
-        this.add.text(400, 240, 'Elliott Edition', {
+        this.add.text(640, 280, 'Elliott Edition', {
             fontSize: '14px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffffff'
         }).setOrigin(0.5);
 
         // Name label
-        this.add.text(400, 310, 'ENTER YOUR NAME', {
+        this.add.text(640, 360, 'ENTER YOUR NAME', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#aaaaaa'
@@ -54,8 +54,8 @@ class BootScene extends Phaser.Scene {
         // Create HTML input for name entry (overlaid on canvas)
         const canvas = this.game.canvas;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = rect.width / 800;
-        const scaleY = rect.height / 600;
+        const scaleX = rect.width / 1280;
+        const scaleY = rect.height / 720;
 
         const input = document.createElement('input');
         input.type = 'text';
@@ -64,8 +64,8 @@ class BootScene extends Phaser.Scene {
         input.placeholder = 'PLAYER';
         input.style.cssText = `
             position: absolute;
-            left: ${rect.left + 300 * scaleX}px;
-            top: ${rect.top + 330 * scaleY}px;
+            left: ${rect.left + 540 * scaleX}px;
+            top: ${rect.top + 380 * scaleY}px;
             width: ${200 * scaleX}px;
             height: ${30 * scaleY}px;
             font-family: 'Press Start 2P', cursive;
@@ -85,9 +85,9 @@ class BootScene extends Phaser.Scene {
         // START button
         const startGfx = this.add.graphics();
         startGfx.fillStyle(0x33aa33, 1);
-        startGfx.fillRoundedRect(300, 400, 200, 45, 10);
+        startGfx.fillRoundedRect(540, 450, 200, 45, 10);
 
-        this.add.text(400, 422, '▶ START', {
+        this.add.text(640, 472, '▶ START', {
             fontSize: '16px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffffff',
@@ -95,12 +95,12 @@ class BootScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        const startZone = this.add.zone(400, 422, 200, 45).setInteractive({ useHandCursor: true });
+        const startZone = this.add.zone(640, 472, 200, 45).setInteractive({ useHandCursor: true });
         startZone.on('pointerover', () => {
-            startGfx.clear(); startGfx.fillStyle(0x44cc44, 1); startGfx.fillRoundedRect(300, 400, 200, 45, 10);
+            startGfx.clear(); startGfx.fillStyle(0x44cc44, 1); startGfx.fillRoundedRect(540, 450, 200, 45, 10);
         });
         startZone.on('pointerout', () => {
-            startGfx.clear(); startGfx.fillStyle(0x33aa33, 1); startGfx.fillRoundedRect(300, 400, 200, 45, 10);
+            startGfx.clear(); startGfx.fillStyle(0x33aa33, 1); startGfx.fillRoundedRect(540, 450, 200, 45, 10);
         });
         startZone.on('pointerdown', () => {
             const name = (input.value.trim() || 'PLAYER').toUpperCase();
@@ -114,9 +114,9 @@ class BootScene extends Phaser.Scene {
         // LOAD GAME button
         const loadGfx = this.add.graphics();
         loadGfx.fillStyle(0x0f3460, 1);
-        loadGfx.fillRoundedRect(300, 460, 200, 40, 10);
+        loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
 
-        this.add.text(400, 480, '📂 LOAD GAME', {
+        this.add.text(640, 530, '📂 LOAD GAME', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#aaaaaa',
@@ -124,20 +124,20 @@ class BootScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5);
 
-        const loadZone = this.add.zone(400, 480, 200, 40).setInteractive({ useHandCursor: true });
+        const loadZone = this.add.zone(640, 530, 200, 40).setInteractive({ useHandCursor: true });
         loadZone.on('pointerover', () => {
-            loadGfx.clear(); loadGfx.fillStyle(0x1a5276, 1); loadGfx.fillRoundedRect(300, 460, 200, 40, 10);
+            loadGfx.clear(); loadGfx.fillStyle(0x1a5276, 1); loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
         });
         loadZone.on('pointerout', () => {
-            loadGfx.clear(); loadGfx.fillStyle(0x0f3460, 1); loadGfx.fillRoundedRect(300, 460, 200, 40, 10);
+            loadGfx.clear(); loadGfx.fillStyle(0x0f3460, 1); loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
         });
         loadZone.on('pointerdown', () => {
             this._loadGame(input);
         });
 
         // ── Audio toggle buttons ──────────────────────────────────
-        this._createMuteToggle(290, 530, '🎵', 'MUSIC', 'musicMuted');
-        this._createMuteToggle(430, 530, '🔊', 'SFX', 'sfxMuted');
+        this._createMuteToggle(510, 580, '🎵', 'MUSIC', 'musicMuted');
+        this._createMuteToggle(650, 580, '🔊', 'SFX', 'sfxMuted');
 
         // Enter key starts the game
         input.addEventListener('keydown', (e) => {

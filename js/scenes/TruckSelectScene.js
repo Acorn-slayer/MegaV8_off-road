@@ -7,10 +7,10 @@ class TruckSelectScene extends Phaser.Scene {
 
     create() {
         // Background
-        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 800, 600);
+        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 1280, 720);
 
         // Title
-        this.add.text(400, 40, 'CHOOSE YOUR TRUCK', {
+        this.add.text(640, 40, 'CHOOSE YOUR TRUCK', {
             fontSize: '22px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffcc00',
@@ -27,7 +27,7 @@ class TruckSelectScene extends Phaser.Scene {
         const gapX = 20;
         const gapY = 20;
         const totalW = cols * cardW + (cols - 1) * gapX;
-        const startX = (800 - totalW) / 2;
+        const startX = (1280 - totalW) / 2;
         const startY = 90;
 
         for (let i = 0; i < colors.length; i++) {
@@ -39,7 +39,7 @@ class TruckSelectScene extends Phaser.Scene {
         }
 
         // Back hint
-        this.add.text(400, 570, 'ESC = Back to Track Select', {
+        this.add.text(640, 690, 'ESC = Back to Track Select', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#666666'

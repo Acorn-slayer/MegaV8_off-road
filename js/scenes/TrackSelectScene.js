@@ -8,9 +8,9 @@ class TrackSelectScene extends Phaser.Scene {
     }
 
     create() {
-        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 800, 600);
+        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 1280, 720);
 
-        this._loadingText = this.add.text(400, 300, 'Loading tracks...', {
+        this._loadingText = this.add.text(640, 360, 'Loading tracks...', {
             fontSize: '12px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#888888'
@@ -51,7 +51,7 @@ class TrackSelectScene extends Phaser.Scene {
     _buildUI() {
         if (this._loadingText) this._loadingText.destroy();
 
-        this.add.text(400, 40, 'SELECT MODE', {
+        this.add.text(640, 40, 'SELECT MODE', {
             fontSize: '28px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffcc00',
@@ -60,7 +60,7 @@ class TrackSelectScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Money display (top right)
-        this.add.text(780, 15, `$${GameState.money}`, {
+        this.add.text(1260, 15, `$${GameState.money}`, {
             fontSize: '14px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#00ff88',
@@ -69,7 +69,7 @@ class TrackSelectScene extends Phaser.Scene {
         }).setOrigin(1, 0);
 
         // Garage button (top right, below money)
-        const garageBtn = this.add.text(780, 42, '🔧 GARAGE', {
+        const garageBtn = this.add.text(1260, 42, '🔧 GARAGE', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#ffcc00',
@@ -105,7 +105,7 @@ class TrackSelectScene extends Phaser.Scene {
 
         this._drawChampionshipButton();
 
-        this.add.text(400, 145, 'or pick a single track:', {
+        this.add.text(640, 145, 'or pick a single track:', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#888888'
@@ -113,14 +113,14 @@ class TrackSelectScene extends Phaser.Scene {
 
         // Track cards — scrollable 2-column grid
         const tracks = GameState.tracks;
-        const cardW = 310, cardH = 130, gap = 20, cols = 2;
+        const cardW = 310, cardH = 130, gap = 20, cols = 3;
         const totalW = cols * cardW + (cols - 1) * gap;
-        const startX = (800 - totalW) / 2 + cardW / 2;
+        const startX = (1280 - totalW) / 2 + cardW / 2;
         const startY = 170;
 
         const rows = Math.ceil(tracks.length / cols);
         const contentH = rows * (cardH + gap);
-        const viewH = 370;
+        const viewH = 490;
         this._scrollY = 0;
         this._maxScroll = Math.max(0, contentH - viewH);
 
@@ -137,7 +137,7 @@ class TrackSelectScene extends Phaser.Scene {
         // Clip mask so cards don't overflow into header/footer
         const maskShape = this.make.graphics();
         maskShape.fillStyle(0xffffff);
-        maskShape.fillRect(0, startY - 10, 800, viewH + 20);
+        maskShape.fillRect(0, startY - 10, 1280, viewH + 20);
         const mask = maskShape.createGeometryMask();
         this._cardContainer.setMask(mask);
 
@@ -158,14 +158,14 @@ class TrackSelectScene extends Phaser.Scene {
         });
 
         if (this._maxScroll > 0) {
-            this.add.text(400, 555, String.fromCharCode(8597) + ' Scroll for more tracks', {
+            this.add.text(640, 675, String.fromCharCode(8597) + ' Scroll for more tracks', {
                 fontSize: '8px',
                 fontFamily: "'Press Start 2P', cursive",
                 color: '#555555'
             }).setOrigin(0.5);
         }
 
-        this.add.text(400, 575, 'ESC = Back', {
+        this.add.text(640, 695, 'ESC = Back', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#666666'
@@ -300,7 +300,7 @@ class TrackSelectScene extends Phaser.Scene {
     }
 
     _drawChampionshipButton() {
-        const cx = 400, cy = 100, w = 360, h = 40;
+        const cx = 640, cy = 100, w = 360, h = 40;
         const gfx = this.add.graphics();
         gfx.fillStyle(0x884400, 0.9);
         gfx.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 8);

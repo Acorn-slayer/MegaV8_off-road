@@ -7,10 +7,10 @@ class ShopScene extends Phaser.Scene {
 
     create() {
         // Background
-        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 800, 600);
+        this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 1280, 720);
 
         // Title
-        this.add.text(400, 30, 'UPGRADE SHOP', {
+        this.add.text(640, 30, 'UPGRADE SHOP', {
             fontSize: '36px', fontFamily: 'Arial Black, Arial, sans-serif',
             color: '#ffcc00', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
@@ -21,7 +21,7 @@ class ShopScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Money display
-        this.moneyText = this.add.text(400, 105, '', {
+        this.moneyText = this.add.text(640, 105, '', {
             fontSize: '24px', fontFamily: 'Arial, sans-serif',
             color: '#ffcc00', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
@@ -44,7 +44,7 @@ class ShopScene extends Phaser.Scene {
         }
 
         // Player stats preview
-        this.statsText = this.add.text(400, 555, '', {
+        this.statsText = this.add.text(640, 665, '', {
             fontSize: '12px', fontFamily: 'Arial, sans-serif', color: '#888888'
         }).setOrigin(0.5);
         this.updateStatsPreview();
@@ -69,7 +69,7 @@ class ShopScene extends Phaser.Scene {
                     GameState.money += 100;
                     this._cheatSeq = [];
                     // Flash feedback then refresh
-                    const flash = this.add.text(400, 140, '💰 +$100!', {
+                    const flash = this.add.text(640, 140, '💰 +$100!', {
                         fontSize: '20px', fontFamily: "'Press Start 2P', cursive",
                         color: '#00ff88', stroke: '#000000', strokeThickness: 4
                     }).setOrigin(0.5).setDepth(100);
@@ -86,7 +86,7 @@ class ShopScene extends Phaser.Scene {
         // "Next Race" button
         const nextBtn = this.add.graphics();
         nextBtn.fillStyle(0x33aa33, 1);
-        nextBtn.fillRoundedRect(300, 490, 200, 50, 10);
+        nextBtn.fillRoundedRect(540, 590, 200, 50, 10);
         nextBtn.setDepth(10);
 
         const isSingle = GameState.gameMode === 'single' || GameState.gameMode !== 'championship';
@@ -94,12 +94,12 @@ class ShopScene extends Phaser.Scene {
         GameState._champReturnToResults = false;
         const btnLabel = isChampGarage ? '◄ DONE' : (isSingle ? '◄ BACK TO TRACKS' : 'NEXT RACE ►');
 
-        this.add.text(400, 515, btnLabel, {
+        this.add.text(640, 615, btnLabel, {
             fontSize: '22px', fontFamily: 'Arial Black, Arial, sans-serif',
             color: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5).setDepth(11);
 
-        const nextZone = this.add.zone(400, 515, 200, 50).setInteractive().setDepth(12);
+        const nextZone = this.add.zone(640, 615, 200, 50).setInteractive().setDepth(12);
         nextZone.on('pointerdown', () => {
             if (isChampGarage) {
                 // Return to track select — championship state preserved
@@ -120,8 +120,8 @@ class ShopScene extends Phaser.Scene {
         });
 
         // Hover effect
-        nextZone.on('pointerover', () => nextBtn.clear().fillStyle(0x44cc44, 1).fillRoundedRect(300, 490, 200, 50, 10));
-        nextZone.on('pointerout', () => nextBtn.clear().fillStyle(0x33aa33, 1).fillRoundedRect(300, 490, 200, 50, 10));
+        nextZone.on('pointerover', () => nextBtn.clear().fillStyle(0x44cc44, 1).fillRoundedRect(540, 590, 200, 50, 10));
+        nextZone.on('pointerout', () => nextBtn.clear().fillStyle(0x33aa33, 1).fillRoundedRect(540, 590, 200, 50, 10));
     }
 
     createUpgradeRow(stat, y) {
@@ -133,16 +133,16 @@ class ShopScene extends Phaser.Scene {
         // Row background
         const rowBg = this.add.graphics();
         rowBg.fillStyle(0x2a2a4e, 0.8);
-        rowBg.fillRoundedRect(60, y, 680, 80, 8);
+        rowBg.fillRoundedRect(300, y, 680, 80, 8);
 
         // Icon + label
-        this.add.text(90, y + 12, `${stat.icon} ${stat.label}`, {
+        this.add.text(330, y + 12, `${stat.icon} ${stat.label}`, {
             fontSize: '20px', fontFamily: 'Arial, sans-serif', color: stat.color,
             stroke: '#000000', strokeThickness: 3
         });
 
         // Level pips (10 levels, smaller to fit)
-        const pipsX = 90;
+        const pipsX = 330;
         const pipsY = y + 48;
         for (let i = 0; i < GameState.maxLevel; i++) {
             const pip = this.add.graphics();
@@ -155,7 +155,7 @@ class ShopScene extends Phaser.Scene {
         }
 
         // Level text
-        this.add.text(280, y + 48, `Lv ${level}/${GameState.maxLevel}`, {
+        this.add.text(520, y + 48, `Lv ${level}/${GameState.maxLevel}`, {
             fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#cccccc'
         });
 
@@ -167,13 +167,13 @@ class ShopScene extends Phaser.Scene {
             handling: `${stats.handling.toFixed(2)}`,
             nitro: `${stats.nitroMax} tanks`,
         };
-        this.add.text(380, y + 48, valMap[stat.key], {
+        this.add.text(620, y + 48, valMap[stat.key], {
             fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#999999'
         });
 
         // Buy button
         if (maxed) {
-            this.add.text(650, y + 30, 'MAXED', {
+            this.add.text(890, y + 30, 'MAXED', {
                 fontSize: '18px', fontFamily: 'Arial Black, Arial, sans-serif',
                 color: '#888888'
             }).setOrigin(0.5);
@@ -181,21 +181,21 @@ class ShopScene extends Phaser.Scene {
             const btnColor = canAfford ? 0xcc8800 : 0x555555;
             const btn = this.add.graphics();
             btn.fillStyle(btnColor, 1);
-            btn.fillRoundedRect(580, y + 12, 140, 55, 8);
+            btn.fillRoundedRect(820, y + 12, 140, 55, 8);
 
-            const btnText = this.add.text(650, y + 28, `$${cost}`, {
+            const btnText = this.add.text(890, y + 28, `$${cost}`, {
                 fontSize: '18px', fontFamily: 'Arial Black, Arial, sans-serif',
                 color: canAfford ? '#ffffff' : '#777777',
                 stroke: '#000000', strokeThickness: 2
             }).setOrigin(0.5);
 
-            this.add.text(650, y + 50, 'UPGRADE', {
+            this.add.text(890, y + 50, 'UPGRADE', {
                 fontSize: '11px', fontFamily: 'Arial, sans-serif',
                 color: canAfford ? '#ffcc00' : '#555555'
             }).setOrigin(0.5);
 
             if (canAfford) {
-                const zone = this.add.zone(650, y + 39, 140, 55).setInteractive();
+                const zone = this.add.zone(890, y + 39, 140, 55).setInteractive();
                 zone.on('pointerdown', () => {
                     if (GameState.buyUpgrade(stat.key)) {
                         // Refresh the shop
@@ -203,10 +203,10 @@ class ShopScene extends Phaser.Scene {
                     }
                 });
                 zone.on('pointerover', () => {
-                    btn.clear().fillStyle(0xeeaa00, 1).fillRoundedRect(580, y + 12, 140, 55, 8);
+                    btn.clear().fillStyle(0xeeaa00, 1).fillRoundedRect(820, y + 12, 140, 55, 8);
                 });
                 zone.on('pointerout', () => {
-                    btn.clear().fillStyle(btnColor, 1).fillRoundedRect(580, y + 12, 140, 55, 8);
+                    btn.clear().fillStyle(btnColor, 1).fillRoundedRect(820, y + 12, 140, 55, 8);
                 });
             }
         }
