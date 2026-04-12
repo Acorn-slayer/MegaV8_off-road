@@ -1,0 +1,114 @@
+﻿{
+    "name":  "New Track",
+    "startX":  400,
+    "startY":  500,
+    "startAngle":  -90,
+    "trackWidth":  70,
+    "lapCount":  3,
+    "walls":  "none",
+    "colors":  {
+                   "bg":  3811866,
+                   "track":  9139029,
+                   "border":  6045747,
+                   "grass":  4880954
+               },
+    "sections":  [
+                     {
+                         "type":  "straight",
+                         "length":  75,
+                         "walls":  true
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100,
+                         "walls":  true
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  -165,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  -155,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100,
+                         "walls":  true
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  90,
+                         "radius":  100
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "straight",
+                         "length":  120
+                     },
+                     {
+                         "type":  "turn",
+                         "angle":  144,
+                         "radius":  56
+                     }
+                 ],
+    "truckScale":  1
+}

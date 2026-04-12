@@ -1,0 +1,276 @@
+{
+  "name": "Blob",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": -106,
+  "trackWidth": 75,
+  "lapCount": 3,
+  "truckScale": 0.5,
+  "walls": "none",
+  "colors": {
+    "bg": 3811866,
+    "track": 9139029,
+    "border": 6045747,
+    "grass": 4880954
+  },
+  "sections": [
+    {
+      "type": "straight",
+      "length": 125,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -22,
+      "radius": 95,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 79,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -61,
+      "radius": 95,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 82,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -29,
+      "radius": 98,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 98,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 20,
+      "radius": 42,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 35,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 37,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 26,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 26,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 75,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -37,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 39,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -52,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 62,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -15,
+      "radius": 75,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 98,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -23,
+      "radius": 118,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 136,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -35,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 25,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -33,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 51,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -17,
+      "radius": 61,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 73,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -48,
+      "radius": 87,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 25,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 27,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 52,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 47,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 33,
+      "radius": 56,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 66,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -22,
+      "radius": 55,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 46,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -27,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 38,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -30,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 40,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -16,
+      "radius": 49,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 79,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -24,
+      "radius": 95,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 81,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -57,
+      "radius": 97,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 165,
+      "walls": true
+    }
+  ]
+}

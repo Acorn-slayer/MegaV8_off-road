@@ -1,0 +1,860 @@
+{
+  "name": "thing",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": 93,
+  "trackWidth": 100,
+  "lapCount": 3,
+  "truckScale": 1.5,
+  "walls": "none",
+  "colors": {
+    "bg": 3811866,
+    "track": 9139029,
+    "border": 6045747,
+    "grass": 4880954
+  },
+  "sections": [
+    {
+      "type": "straight",
+      "length": 108,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -48,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 16,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 45,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 125,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 24,
+      "radius": 150,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 311,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -11,
+      "radius": 373,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 626,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 32,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 24,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -31,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 182,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 25,
+      "radius": 53,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 44,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -23,
+      "radius": 53,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 173,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 9,
+      "radius": 92,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 76,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 15,
+      "radius": 82,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 69,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -20,
+      "radius": 82,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 393,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 10,
+      "radius": 89,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 74,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -17,
+      "radius": 89,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 405,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 54,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 13,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -63,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 68,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 27,
+      "radius": 61,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 51,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -27,
+      "radius": 61,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 91,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 11,
+      "radius": 109,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 174,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -11,
+      "radius": 137,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 114,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -15,
+      "radius": 134,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 112,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -16,
+      "radius": 95,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 79,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 30,
+      "radius": 95,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 108,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -40,
+      "radius": 53,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 44,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -24,
+      "radius": 53,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 64,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -27,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 28,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 63,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 13,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -68,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 69,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -26,
+      "radius": 80,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 66,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 13,
+      "radius": 80,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 222,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 11,
+      "radius": 110,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 92,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -13,
+      "radius": 110,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 436,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 9,
+      "radius": 356,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 297,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -23,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 38,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 13,
+      "radius": 46,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 268,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -10,
+      "radius": 124,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 243,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 16,
+      "radius": 75,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 63,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -22,
+      "radius": 74,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 61,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 22,
+      "radius": 62,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 51,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -14,
+      "radius": 62,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 182,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 13,
+      "radius": 219,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 182,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -10,
+      "radius": 219,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 361,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 15,
+      "radius": 123,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 103,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -9,
+      "radius": 123,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 172,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -11,
+      "radius": 193,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 160,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 10,
+      "radius": 131,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 109,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -84,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 11,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 80,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 127,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -9,
+      "radius": 153,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 274,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -59,
+      "radius": 43,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 36,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 19,
+      "radius": 43,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 93,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -24,
+      "radius": 85,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 70,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 39,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 28,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -46,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 46,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 38,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 32,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -29,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 41,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -23,
+      "radius": 50,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 513,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -14,
+      "radius": 162,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 135,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 15,
+      "radius": 116,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 97,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 34,
+      "radius": 49,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 41,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -34,
+      "radius": 49,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 103,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -14,
+      "radius": 56,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 47,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -39,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 28,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 39,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 94,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 13,
+      "radius": 113,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 365,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -11,
+      "radius": 437,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 384,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 18,
+      "radius": 461,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 572,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 90,
+      "radius": 100,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -3,
+      "radius": 100,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -180,
+      "radius": 100,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "walls": true
+    }
+  ],
+  "erasedWalls": [
+    2,
+    4,
+    6,
+    8,
+    1893,
+    1895
+  ]
+}

@@ -1,0 +1,326 @@
+{
+  "name": "Elliott Specials 1",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": -148,
+  "trackWidth": 70,
+  "lapCount": 5,
+  "truckScale": 0.5,
+  "walls": "none",
+  "colors": {
+    "bg": 4535847,
+    "track": 10723743,
+    "border": 11495238,
+    "grass": 5597774
+  },
+  "sections": [
+    {
+      "type": "straight",
+      "length": 58,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -16,
+      "radius": 70,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -16,
+      "radius": 66,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 55,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -30,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 32,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -36,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 49,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -56,
+      "radius": 59,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 71,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 78,
+      "radius": 86,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 88,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 16,
+      "radius": 98,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 81,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -70,
+      "radius": 41,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 34,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -25,
+      "radius": 41,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 111,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -33,
+      "radius": 134,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 149,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -22,
+      "radius": 68,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 57,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -40,
+      "radius": 41,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 34,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -34,
+      "radius": 41,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 71,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -82,
+      "radius": 80,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 66,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 73,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 30,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 49,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 54,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 34,
+      "radius": 65,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 93,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -23,
+      "radius": 50,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 42,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -18,
+      "radius": 50,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 45,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -19,
+      "radius": 54,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 106,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -55,
+      "radius": 67,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 55,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -25,
+      "radius": 65,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 54,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -44,
+      "radius": 59,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 50,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -30,
+      "radius": 59,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 72,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 41,
+      "radius": 40,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 30,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": 23,
+      "radius": 40,
+      "walls": true
+    }
+  ],
+  "erasedWalls": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    426,
+    427,
+    428,
+    429,
+    430,
+    431,
+    433,
+    435,
+    437,
+    439,
+    441,
+    443,
+    445
+  ],
+  "startLineIndex": 177
+}

@@ -1,0 +1,139 @@
+{
+  "name": "Winding Road",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": -90,
+  "trackWidth": 60,
+  "lapCount": 3,
+  "truckScale": 0.5,
+  "walls": "outer",
+  "colors": {
+    "bg": 1714714,
+    "track": 6978394,
+    "border": 4873786,
+    "grass": 3824170
+  },
+  "sections": [
+    {
+      "type": "straight",
+      "length": 30,
+      "rotate": -4
+    },
+    {
+      "type": "turn",
+      "angle": 60,
+      "radius": 90
+    },
+    {
+      "type": "straight",
+      "length": 80
+    },
+    {
+      "type": "turn",
+      "angle": -120,
+      "radius": 70
+    },
+    {
+      "type": "straight",
+      "length": 120,
+      "hazards": [
+        {
+          "type": "water",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "type": "turn",
+      "angle": 90,
+      "radius": 100
+    },
+    {
+      "type": "straight",
+      "length": 60
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 60
+    },
+    {
+      "type": "straight",
+      "length": 140
+    },
+    {
+      "type": "turn",
+      "angle": -60,
+      "radius": 110
+    },
+    {
+      "type": "straight",
+      "length": 80
+    },
+    {
+      "type": "turn",
+      "angle": 90,
+      "radius": 80,
+      "walls": true
+    },
+    {
+      "type": "turn",
+      "angle": -90,
+      "radius": 60
+    },
+    {
+      "type": "straight",
+      "length": 100
+    },
+    {
+      "type": "turn",
+      "angle": -60,
+      "radius": 120
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "turn",
+      "angle": -57,
+      "radius": 100
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "straight",
+      "length": 120
+    },
+    {
+      "type": "straight",
+      "length": 67
+    },
+    {
+      "type": "turn",
+      "angle": -180,
+      "radius": 40
+    }
+  ],
+  "erasedWalls": [
+    1,
+    3,
+    371,
+    372,
+    373
+  ]
+}
