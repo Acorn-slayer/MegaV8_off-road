@@ -16,7 +16,7 @@ const config = {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    scene: [BootScene, TrackSelectScene, TruckSelectScene, RaceScene, ShopScene, ChampionshipResultsScene]
+    scene: [BootScene, TrackSelectScene, TruckSelectScene, VehicleShopScene, RaceScene, ShopScene, ChampionshipResultsScene]
 };
 
 const game = new Phaser.Game(config);

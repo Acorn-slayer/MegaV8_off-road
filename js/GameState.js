@@ -15,6 +15,7 @@ const GameState = {
     championshipRaceIndex: 0,
     championshipOrder: [],   // shuffled track indices for championship
     championshipPoints: { player: 0, ai: [0, 0, 0] },
+    purchasedVehicles: {},
 
     // Truck color presets — each has different base stat strengths
     truckPresets: {
@@ -24,6 +25,7 @@ const GameState = {
         0x33cc33: { name: 'Green Machine',  topSpeed: 190, acceleration: 145, handling: 3.4, nitro: 5 },
         0xff66cc: { name: 'Pink Rocket',    topSpeed: 220, acceleration: 135, handling: 2.6, nitro: 4 },
         0xff8800: { name: 'Orange Blaze',   topSpeed: 195, acceleration: 155, handling: 2.9, nitro: 7 },
+        0x000000: { name: 'Night Rider',    topSpeed: 225, acceleration: 170, handling: 3.8, nitro: 6, type: 'bike', shopOnly: true, price: 10000 },
     },
 
     // Player upgrade levels (0-10 each)
@@ -59,9 +61,34 @@ const GameState = {
         return 1 - this.aiStartPenalty * (1 - fade);
     },
 
+    // Check whether a vehicle is available for selection
+    isVehicleUnlocked(color) {
+        const preset = this.truckPresets[color];
+        if (!preset) return false;
+        if (!preset.shopOnly) return true;
+        return !!this.purchasedVehicles[color];
+    },
+
+    isVehiclePurchased(color) {
+        return !!this.purchasedVehicles[color];
+    },
+
+    purchaseVehicle(color, cost) {
+        if (!this.truckPresets[color] || this.isVehicleUnlocked(color)) return false;
+        if (this.money < cost) return false;
+        this.money -= cost;
+        this.purchasedVehicles[color] = true;
+        return true;
+    },
+
+    getPlayerColor() {
+        return this.isVehicleUnlocked(this.playerColor) ? this.playerColor : 0xff0000;
+    },
+
     // Get base stats for the selected truck color
     getBaseStats() {
-        return this.truckPresets[this.playerColor] || this.truckPresets[0xff0000];
+        const color = this.getPlayerColor();
+        return this.truckPresets[color] || this.truckPresets[0xff0000];
     },
 
     // Compute player stats from truck preset base + upgrades
@@ -151,6 +178,7 @@ const GameState = {
         this.upgrades.acceleration = 0;
         this.upgrades.handling = 0;
         this.upgrades.nitro = 0;
+        this.purchasedVehicles = {};
         this.aiUpgrades = [
             { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0, money: 0 },
             { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0, money: 0 },
@@ -169,6 +197,7 @@ const GameState = {
             money: this.money,
             raceNumber: this.raceNumber,
             upgrades: { ...this.upgrades },
+            purchasedVehicles: { ...this.purchasedVehicles },
             aiUpgrades: this.aiUpgrades.map(a => ({ ...a })),
             gameMode: this.gameMode,
             championshipRaceIndex: this.championshipRaceIndex,
@@ -188,6 +217,7 @@ const GameState = {
         this.playerColor = s.playerColor || 0xff0000;
         this.money = s.money || 0;
         this.raceNumber = s.raceNumber || 0;
+        this.purchasedVehicles = s.purchasedVehicles || {};
         if (s.upgrades) {
             this.upgrades.topSpeed = s.upgrades.topSpeed || 0;
             this.upgrades.acceleration = s.upgrades.acceleration || 0;
