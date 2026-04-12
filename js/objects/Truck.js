@@ -1,8 +1,8 @@
 // Truck � Player vehicle. Extends BaseTruck with keyboard/touch input.
 
 class Truck extends BaseTruck {
-    constructor(scene, x, y, color = 0xff0000) {
-        super(scene, x, y, color);
+    constructor(scene, x, y, color = 0xff0000, vehicleType = 'truck') {
+        super(scene, x, y, color, vehicleType);
     }
 
     // -- Update (called each frame) -----------------------------

@@ -23,8 +23,10 @@ class RaceScene extends Phaser.Scene {
         // ── Player truck ────────────────────────────────────────
         const startWp = this.track.waypoints[this.track.startLineIndex];
         const truckScale = this.track.truckScale || 1;
-        const playerColor = GameState.playerColor || 0xff0000;
-        this.playerTruck = new Truck(this, startWp[0], startWp[1] - 10 * truckScale, playerColor);
+        const playerColor = GameState.getPlayerColor();
+        const playerPreset = GameState.getBaseStats();
+        const playerType = playerPreset.type || 'truck';
+        this.playerTruck = new Truck(this, startWp[0], startWp[1] - 10 * truckScale, playerColor, playerType);
 
         // Apply player stats from upgrades + truck preset
         const pStats = GameState.getPlayerStats();
@@ -81,12 +83,16 @@ class RaceScene extends Phaser.Scene {
             this.aiTrucks.push(ai);
         }
 
+        // Store AI display names in GameState for championship results
+        GameState.aiDisplayNames = this.aiTrucks.map(ai => ai.aiName);
+
         // All trucks for collision checks
         this.allTrucks = [this.playerTruck, ...this.aiTrucks];
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            t.setTruckScale(truckScale);
+            const vehicleScale = t.vehicleType === 'bike' ? 0.75 : 1;
+            t.setTruckScale(truckScale * vehicleScale);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
         }
@@ -112,30 +118,6 @@ class RaceScene extends Phaser.Scene {
         this._pauseMenuStage = null;
         this._pauseMenuContainer = null;
         this._pauseSavedSpeeds = [];
-
-        this.input.keyboard.on('keydown-R', () => {
-            if (this._pauseMenuActive && this._pauseMenuStage === 'menu') {
-                this._closePauseMenu();
-            }
-        });
-
-        this.input.keyboard.on('keydown-S', () => {
-            if (this._pauseMenuActive) {
-                this._saveAndQuit();
-            }
-        });
-
-        this.input.keyboard.on('keydown-Q', () => {
-            if (this._pauseMenuActive) {
-                this._quitToMain(false);
-            }
-        });
-
-        this.input.keyboard.on('keydown-C', () => {
-            if (this._pauseMenuActive && this._pauseMenuStage === 'confirm') {
-                this._openPauseMenu();
-            }
-        });
 
         // ── Race State ──────────────────────────────────────────
         this.currentLap = 0;
@@ -264,10 +246,10 @@ class RaceScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, worldW, worldH);
         this.cameras.main.startFollow(this.playerTruck, true, 0.09, 0.09);
 
-        // Keep the effective track width on-screen consistent across tracks.
-        const targetTrackWidth = 70;
-        const trackWidth = Math.max(this.track.trackWidth || targetTrackWidth, 1);
-        const zoom = Phaser.Math.Clamp(targetTrackWidth / trackWidth, 0.7, 1);
+        // Normalize camera zoom so narrower tracks don't feel cramped.
+        // Tracks with scaled widths under 70 get a slight zoom-out.
+        const trackWidth = Math.max(this.track.trackWidth || 70, 1);
+        const zoom = Phaser.Math.Clamp(70 / trackWidth, 0.85, 1);
         this.cameras.main.setZoom(zoom);
 
         // ── Pre-race countdown with traffic lights ──────────────
@@ -549,18 +531,19 @@ class RaceScene extends Phaser.Scene {
         this._pauseMenuStage = null;
         this._pauseSavedSpeeds = [];
         soundFX.stopEngine();
+        soundFX.stopMusic();
         soundFX.updateTireScreech(0);
         this.scene.start('TrackSelectScene');
     }
 
     // ── Game Loop ───────────────────────────────────────────────
     update(time, delta) {
-        // ESC from the race returns to the track selection menu.
+        // ESC → open pause menu, or confirm quit if already paused
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
             if (this._pauseMenuActive) {
                 this._showQuitConfirm();
             } else {
-                this._quitToTrackSelect();
+                this._openPauseMenu();
             }
             return;
         }
@@ -1076,6 +1059,7 @@ class RaceScene extends Phaser.Scene {
 
         // Save earned money to GameState
         GameState.money += this.money;
+        GameState.raceNumber++;
 
         // AI earns position bonus + coin money, then spends on upgrades
         for (let i = 0; i < this.aiTrucks.length; i++) {
@@ -1170,7 +1154,6 @@ class RaceScene extends Phaser.Scene {
                     this.scene.start('ChampionshipResultsScene');
                 } else {
                     GameState.championshipRaceIndex++;
-                    GameState.raceNumber++;
                     // Set next championship track
                     const idx = GameState.championshipRaceIndex;
                     const order = GameState.championshipOrder || [];
@@ -1469,50 +1452,6 @@ class RaceScene extends Phaser.Scene {
         // Store edges as null — we use distance-based detection now
         this.innerEdge = null;
         this.outerEdge = null;
-    }
-
-    // Fill the area between outer and inner paths (forming a track ring)
-    fillClosedPath(gfx, outer, inner, expand) {
-        const len = outer.length;
-
-        // We draw the track as a series of quads between consecutive segments
-        for (let i = 0; i < len; i++) {
-            const j = (i + 1) % len;
-
-            const o1 = outer[i];
-            const o2 = outer[j];
-            const i1 = inner[i];
-            const i2 = inner[j];
-
-            // Expand outward for border effect
-            let eo1 = o1, eo2 = o2, ei1 = i1, ei2 = i2;
-            if (expand > 0) {
-                eo1 = this.expandPoint(o1, inner[i], expand);
-                eo2 = this.expandPoint(o2, inner[j], expand);
-                ei1 = this.expandPoint(i1, outer[i], expand);
-                ei2 = this.expandPoint(i2, outer[j], expand);
-            }
-
-            gfx.beginPath();
-            gfx.moveTo(eo1[0], eo1[1]);
-            gfx.lineTo(eo2[0], eo2[1]);
-            gfx.lineTo(ei2[0], ei2[1]);
-            gfx.lineTo(ei1[0], ei1[1]);
-            gfx.closePath();
-            gfx.fillPath();
-        }
-    }
-
-    // Push a point away from a reference point by 'amount'
-    expandPoint(pt, ref, amount) {
-        const dx = pt[0] - ref[0];
-        const dy = pt[1] - ref[1];
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist === 0) return pt;
-        return [
-            pt[0] + (dx / dist) * amount,
-            pt[1] + (dy / dist) * amount,
-        ];
     }
 
     // ── Start / Finish Line ─────────────────────────────────────

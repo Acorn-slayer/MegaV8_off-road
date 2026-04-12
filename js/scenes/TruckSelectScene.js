@@ -19,7 +19,7 @@ class TruckSelectScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const presets = GameState.truckPresets;
-        const colors = Object.keys(presets).map(Number);
+        const colors = Object.keys(presets).map(Number).filter(c => !presets[c].shopOnly || GameState.isVehicleUnlocked(c));
         const cols = 3;
         const rows = Math.ceil(colors.length / cols);
         const cardW = 220;
@@ -37,6 +37,28 @@ class TruckSelectScene extends Phaser.Scene {
             const y = startY + row * (cardH + gapY);
             this._drawTruckCard(colors[i], presets[colors[i]], x, y, cardW, cardH);
         }
+
+        // Vehicle Shop button
+        const shopGfx = this.add.graphics();
+        shopGfx.fillStyle(0x884400, 0.9);
+        shopGfx.fillRoundedRect(490, 630, 300, 40, 8);
+        this.add.text(640, 650, '🛒 VEHICLE SHOP', {
+            fontSize: '12px',
+            fontFamily: "'Press Start 2P', cursive",
+            color: '#ffcc00'
+        }).setOrigin(0.5);
+        const shopZone = this.add.zone(640, 650, 300, 40).setInteractive({ useHandCursor: true });
+        shopZone.on('pointerover', () => {
+            shopGfx.clear(); shopGfx.fillStyle(0xaa5500, 0.9); shopGfx.fillRoundedRect(490, 630, 300, 40, 8);
+            shopGfx.lineStyle(2, 0xffcc00, 1); shopGfx.strokeRoundedRect(490, 630, 300, 40, 8);
+        });
+        shopZone.on('pointerout', () => {
+            shopGfx.clear(); shopGfx.fillStyle(0x884400, 0.9); shopGfx.fillRoundedRect(490, 630, 300, 40, 8);
+        });
+        shopZone.on('pointerdown', () => {
+            GameState.previousScene = 'TruckSelectScene';
+            this.scene.start('VehicleShopScene');
+        });
 
         // Back hint
         this.add.text(640, 690, 'ESC = Back to Track Select', {

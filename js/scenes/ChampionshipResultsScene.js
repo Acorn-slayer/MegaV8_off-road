@@ -29,11 +29,12 @@ class ChampionshipResultsScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Build standings
+        const aiNames = GameState.aiDisplayNames || ['Blue Thunder', 'Gold Rush', 'Green Machine'];
         const standings = [
             { name: GameState.playerName, points: pts.player, color: '#ff6666' },
-            { name: 'Blue Thunder', points: pts.ai[0], color: '#3388ff' },
-            { name: 'Gold Rush', points: pts.ai[1], color: '#ffcc00' },
-            { name: 'Green Machine', points: pts.ai[2], color: '#33cc33' },
+            { name: aiNames[0] || 'AI 1', points: pts.ai[0], color: '#3388ff' },
+            { name: aiNames[1] || 'AI 2', points: pts.ai[1], color: '#ffcc00' },
+            { name: aiNames[2] || 'AI 3', points: pts.ai[2], color: '#33cc33' },
         ];
         standings.sort((a, b) => b.points - a.points);
 

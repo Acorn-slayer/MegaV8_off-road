@@ -107,7 +107,6 @@ class ShopScene extends Phaser.Scene {
             } else if (isSingle) {
                 this.scene.start('TrackSelectScene');
             } else {
-                GameState.raceNumber++;
                 // Set the next championship track
                 const idx = GameState.championshipRaceIndex;
                 const order = GameState.championshipOrder || [];

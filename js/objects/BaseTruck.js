@@ -2,11 +2,12 @@
 // Player (Truck) and AI (AiTruck) both extend this class.
 
 class BaseTruck extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, color = 0xff0000) {
+    constructor(scene, x, y, color = 0xff0000, vehicleType = 'truck') {
         super(scene, x, y);
         scene.add.existing(this);
 
         this.truckColor = color;
+        this.vehicleType = vehicleType;
 
         // ── Stats (set by subclass or externally) ──────────────
         this.topSpeed = 200;
@@ -39,7 +40,9 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.truckHeight = 18;
 
         // ── Draw the truck ─────────────────────────────────────
-        this.truckGraphics = this.createTruckGraphics(scene, color);
+        this.truckGraphics = this.vehicleType === 'bike'
+            ? this.createBikeGraphics(scene, color)
+            : this.createTruckGraphics(scene, color);
         this.add(this.truckGraphics);    }
 
     // Apply track-based truck scaling
@@ -74,6 +77,40 @@ class BaseTruck extends Phaser.GameObjects.Container {
         gfx.fillRect(4, -7, 3, 5);
         gfx.fillRect(-7, 3, 3, 5);
         gfx.fillRect(4, 3, 3, 5);
+
+        return gfx;
+    }
+
+    createBikeGraphics(scene, color) {
+        const gfx = scene.add.graphics();
+
+        // Wheels (top and bottom)
+        gfx.fillStyle(0x111111, 1);
+        gfx.fillRect(-2, -14, 4, 7);
+        gfx.fillRect(-2, 7, 4, 7);
+        // Wheel spokes
+        gfx.fillStyle(0x777777, 1);
+        gfx.fillRect(-1, -12, 2, 3);
+        gfx.fillRect(-1, 9, 2, 3);
+
+        // Body frame
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-4, -8, 8, 16, 3);
+
+        // Seat
+        gfx.fillStyle(0x222222, 1);
+        gfx.fillRoundedRect(-3, -2, 6, 7, 2);
+
+        // Windshield / fairing
+        gfx.fillStyle(0x555555, 1);
+        gfx.fillRoundedRect(-3, -10, 6, 5, 2);
+
+        // Handlebars
+        gfx.fillStyle(0x333333, 1);
+        gfx.fillRect(-6, -10, 3, 1);
+        gfx.fillRect(3, -10, 3, 1);
+        gfx.fillRect(-5, -10, 1, 3);
+        gfx.fillRect(4, -10, 1, 3);
 
         return gfx;
     }
