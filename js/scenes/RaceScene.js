@@ -105,8 +105,40 @@ class RaceScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.nitroKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.rKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+        this.sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.cKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
         this.musicKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.touchControls = new TouchControls(this);
+        this._pauseMenuActive = false;
+        this._pauseMenuStage = null;
+        this._pauseMenuContainer = null;
+        this._pauseSavedSpeeds = [];
+
+        this.input.keyboard.on('keydown-R', () => {
+            if (this._pauseMenuActive && this._pauseMenuStage === 'menu') {
+                this._closePauseMenu();
+            }
+        });
+
+        this.input.keyboard.on('keydown-S', () => {
+            if (this._pauseMenuActive) {
+                this._saveAndQuit();
+            }
+        });
+
+        this.input.keyboard.on('keydown-Q', () => {
+            if (this._pauseMenuActive) {
+                this._quitToMain(false);
+            }
+        });
+
+        this.input.keyboard.on('keydown-C', () => {
+            if (this._pauseMenuActive && this._pauseMenuStage === 'confirm') {
+                this._openPauseMenu();
+            }
+        });
 
         // ── Race State ──────────────────────────────────────────
         this.currentLap = 0;
@@ -235,6 +267,12 @@ class RaceScene extends Phaser.Scene {
         const worldH = this.track.worldH || 1800;
         this.cameras.main.setBounds(0, 0, worldW, worldH);
         this.cameras.main.startFollow(this.playerTruck, true, 0.09, 0.09);
+
+        // Keep the effective track width on-screen consistent across tracks.
+        const targetTrackWidth = 70;
+        const trackWidth = Math.max(this.track.trackWidth || targetTrackWidth, 1);
+        const zoom = Phaser.Math.Clamp(targetTrackWidth / trackWidth, 0.7, 1);
+        this.cameras.main.setZoom(zoom);
 
         // ── Pre-race countdown with traffic lights ──────────────
         this._startCountdown();
@@ -371,14 +409,189 @@ class RaceScene extends Phaser.Scene {
         });
     }
 
+    _openPauseMenu() {
+        if (this._pauseMenuActive) return;
+        this._pauseMenuActive = true;
+        this._pauseMenuStage = 'menu';
+        this._pauseSavedSpeeds = this.allTrucks.map(t => ({ truck: t, speed: t.speed, nitroBoosting: t.nitroBoosting }));
+        for (const t of this.allTrucks) {
+            t.speed = 0;
+        }
+        soundFX.stopEngine();
+        soundFX.updateTireScreech(0);
+
+        const cam = this.cameras.main;
+        const cw = cam.width;
+        const ch = cam.height;
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.75);
+        overlay.fillRect(0, 0, cw, ch);
+
+        const title = this.add.text(cw / 2, ch * 0.22, 'PAUSED', {
+            fontSize: '42px', fontFamily: "'Press Start 2P', cursive",
+            color: '#ffcc00', stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5);
+
+        const lines = [
+            'R = Resume',
+            'S = Save & Quit',
+            'Q = Quit Without Saving',
+            'ESC = Confirm Quit'
+        ];
+
+        const texts = [];
+        for (let i = 0; i < lines.length; i++) {
+            const t = this.add.text(cw / 2, ch * 0.34 + i * 40, lines[i], {
+                fontSize: '18px', fontFamily: "'Press Start 2P', cursive",
+                color: '#ffffff'
+            }).setOrigin(0.5);
+            texts.push(t);
+        }
+
+        this._pauseMenuContainer = this.add.container(0, 0, [overlay, title, ...texts]).setScrollFactor(0);
+    }
+
+    _openPauseConfirm() {
+        if (!this._pauseMenuActive) return;
+        this._pauseMenuStage = 'confirm';
+        if (this._pauseMenuContainer) {
+            this._pauseMenuContainer.destroy();
+            this._pauseMenuContainer = null;
+        }
+
+        const cam = this.cameras.main;
+        const cw = cam.width;
+        const ch = cam.height;
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.85);
+        overlay.fillRect(0, 0, cw, ch);
+
+        const title = this.add.text(cw / 2, ch * 0.22, 'CONFIRM QUIT', {
+            fontSize: '36px', fontFamily: "'Press Start 2P', cursive",
+            color: '#ff6666', stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5);
+
+        const lines = [
+            'S = Save and Quit',
+            'Q = Quit Without Saving',
+            'C = Cancel and Return to Pause Menu'
+        ];
+
+        const texts = [];
+        for (let i = 0; i < lines.length; i++) {
+            const t = this.add.text(cw / 2, ch * 0.33 + i * 40, lines[i], {
+                fontSize: '18px', fontFamily: "'Press Start 2P', cursive",
+                color: '#ffffff'
+            }).setOrigin(0.5);
+            texts.push(t);
+        }
+
+        this._pauseMenuContainer = this.add.container(0, 0, [overlay, title, ...texts]).setScrollFactor(0);
+    }
+
+    _closePauseMenu() {
+        if (!this._pauseMenuActive) return;
+        this._pauseMenuActive = false;
+        this._pauseMenuStage = null;
+        for (const saved of this._pauseSavedSpeeds) {
+            saved.truck.speed = saved.speed;
+            saved.truck.nitroBoosting = saved.nitroBoosting;
+        }
+        this._pauseSavedSpeeds = [];
+        if (this._pauseMenuContainer) {
+            this._pauseMenuContainer.destroy();
+            this._pauseMenuContainer = null;
+        }
+        if (!GameState.musicMuted && !this.raceFinished && !this._countdownActive) {
+            soundFX.startEngine();
+        }
+    }
+
+    _showQuitConfirm() {
+        this._openPauseConfirm();
+    }
+
+    async _saveAndQuit() {
+        const json = GameState.toSaveJSON();
+        const filename = GameState.playerName.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.v8t';
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await showSaveFilePicker({
+                    suggestedName: filename,
+                    types: [{ description: 'V8 Save', accept: { 'application/json': ['.v8t'] } }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(json);
+                await writable.close();
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+            }
+        } else {
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        this._quitToMain(true);
+    }
+
+    _quitToMain(save) {
+        if (this._pauseMenuContainer) {
+            this._pauseMenuContainer.destroy();
+            this._pauseMenuContainer = null;
+        }
+        this._pauseMenuActive = false;
+        this._pauseMenuStage = null;
+        this._pauseSavedSpeeds = [];
+        soundFX.stopEngine();
+        soundFX.stopMusic();
+        soundFX.updateTireScreech(0);
+        this.scene.start('BootScene');
+    }
+
+    _quitToTrackSelect() {
+        if (this._pauseMenuContainer) {
+            this._pauseMenuContainer.destroy();
+            this._pauseMenuContainer = null;
+        }
+        this._pauseMenuActive = false;
+        this._pauseMenuStage = null;
+        this._pauseSavedSpeeds = [];
+        soundFX.stopEngine();
+        soundFX.updateTireScreech(0);
+        this.scene.start('TrackSelectScene');
+    }
+
     // ── Game Loop ───────────────────────────────────────────────
     update(time, delta) {
-        // ESC → back to title screen (works even during countdown)
+        // ESC from the race returns to the track selection menu.
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
-            soundFX.stopEngine();
-            soundFX.stopMusic();
-            soundFX.updateTireScreech(0);
-            this.scene.start('BootScene');
+            if (this._pauseMenuActive) {
+                this._showQuitConfirm();
+            } else {
+                this._quitToTrackSelect();
+            }
+            return;
+        }
+
+        if (this._pauseMenuActive) {
+            if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
+                this._closePauseMenu();
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.sKey)) {
+                this._saveAndQuit();
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.qKey)) {
+                this._quitToMain(false);
+            }
+            if (this._pauseMenuStage === 'confirm' && Phaser.Input.Keyboard.JustDown(this.cKey)) {
+                this._openPauseMenu();
+            }
             return;
         }
 
