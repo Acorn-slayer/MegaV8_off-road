@@ -76,7 +76,7 @@
     },
     {
       "type": "turn",
-      "angle": 78,
+      "angle": -78,
       "radius": 86,
       "walls": true
     },
@@ -87,7 +87,7 @@
     },
     {
       "type": "turn",
-      "angle": 16,
+      "angle": -16,
       "radius": 98,
       "walls": true
     },
@@ -175,7 +175,7 @@
     },
     {
       "type": "turn",
-      "angle": 73,
+      "angle": -73,
       "radius": 40,
       "walls": true
     },
@@ -186,7 +186,7 @@
     },
     {
       "type": "turn",
-      "angle": 49,
+      "angle": -49,
       "radius": 40,
       "walls": true
     },
@@ -197,7 +197,7 @@
     },
     {
       "type": "turn",
-      "angle": 34,
+      "angle": -34,
       "radius": 65,
       "walls": true
     },
