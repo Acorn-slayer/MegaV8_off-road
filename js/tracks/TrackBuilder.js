@@ -303,8 +303,14 @@ const TrackBuilder = {
             wp[0] = Math.round((wp[0] - cx) * scale + centerX);
             wp[1] = Math.round((wp[1] - cy) * scale + centerY);
         }
-        // Scale track width to match the coordinate scaling
+        // Scale track width and truck scale to match the coordinate scaling
         track.trackWidth = Math.round(track.trackWidth * scale);
+        // If truck scale not set, use the track scale factor; if set, scale it proportionally
+        if (!track.truckScale) {
+            track.truckScale = Math.round(scale * 100) / 100;
+        } else {
+            track.truckScale = Math.round(track.truckScale * scale * 100) / 100;
+        }
 
         // Store world dimensions on the track for camera/rendering use
         track.worldW = worldW;

@@ -19,9 +19,10 @@ class BootScene extends Phaser.Scene {
     }
 
     _buildScreen() {
-        // Background image
+        // Background image — maintain 4:3 aspect ratio with letterboxing
         const bg = this.add.image(640, 360, 'titleBg');
-        bg.setDisplaySize(1280, 720);
+        // 1280x720 is 16:9, but image is 4:3 — fit to width and letterbox
+        bg.setDisplaySize(1280, 960);
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.5);
