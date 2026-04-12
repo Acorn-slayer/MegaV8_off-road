@@ -91,7 +91,7 @@ class RaceScene extends Phaser.Scene {
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            const vehicleScale = t.vehicleType === 'bike' ? 0.75 : 1;
+            const vehicleScale = t.vehicleType === 'bike' ? 0.75 : t.vehicleType === 'f1' ? 0.85 : 1;
             t.setTruckScale(truckScale * vehicleScale);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
@@ -146,16 +146,22 @@ class RaceScene extends Phaser.Scene {
         this.skidMarks = [];  // array of {x, y, angle, alpha}
 
         // ── HUD ─────────────────────────────────────────────────
+        // When camera zoom < 1, the visible area is larger than 1280×720.
+        // HUD elements with setScrollFactor(0) use viewport coords, so we
+        // compute effective viewport dimensions to position them correctly.
+        const cam = this.cameras.main;
+        const vw = cam.width / cam.zoom;
+        const vh = cam.height / cam.zoom;
         const hudStyle = {
             fontSize: '14px', fontFamily: 'Arial, sans-serif', color: '#ffffff',
             stroke: '#000000', strokeThickness: 3
         };
 
-        this.lapText = this.add.text(640, 10, '', {
+        this.lapText = this.add.text(vw / 2, 10, '', {
             ...hudStyle, fontSize: '18px', color: '#ffcc00'
         }).setOrigin(0.5, 0).setDepth(900).setScrollFactor(0);
 
-        this.timerText = this.add.text(640, 32, '', {
+        this.timerText = this.add.text(vw / 2, 32, '', {
             ...hudStyle, fontSize: '14px', color: '#cccccc'
         }).setOrigin(0.5, 0).setDepth(900).setScrollFactor(0);
 
@@ -165,15 +171,15 @@ class RaceScene extends Phaser.Scene {
             ...hudStyle, color: '#00ccff'
         }).setDepth(900).setScrollFactor(0);
 
-        this.moneyText = this.add.text(1270, 10, '', {
+        this.moneyText = this.add.text(vw - 10, 10, '', {
             ...hudStyle, color: '#ffcc00'
         }).setOrigin(1, 0).setDepth(900).setScrollFactor(0);
 
-        this.offTrackText = this.add.text(640, 55, '', {
+        this.offTrackText = this.add.text(vw / 2, 55, '', {
             ...hudStyle, fontSize: '16px', color: '#ff4444'
         }).setOrigin(0.5).setDepth(900).setScrollFactor(0);
 
-        this.bestLapText = this.add.text(1270, 30, '', {
+        this.bestLapText = this.add.text(vw - 10, 30, '', {
             ...hudStyle, fontSize: '12px', color: '#00ff88'
         }).setOrigin(1, 0).setDepth(900).setScrollFactor(0);
 
@@ -181,7 +187,7 @@ class RaceScene extends Phaser.Scene {
             ...hudStyle, fontSize: '16px', color: '#ffcc00'
         }).setDepth(900).setScrollFactor(0);
 
-        this.messageText = this.add.text(640, 360, '', {
+        this.messageText = this.add.text(vw / 2, vh / 2, '', {
             fontSize: '32px', fontFamily: 'Arial Black, Arial, sans-serif',
             color: '#ffffff', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5).setDepth(950).setAlpha(0).setScrollFactor(0);
@@ -257,7 +263,9 @@ class RaceScene extends Phaser.Scene {
     }
 
     _startCountdown() {
-        const cx = 640, cy = 200;
+        const cam = this.cameras.main;
+        const cx = (cam.width / cam.zoom) / 2;
+        const cy = (cam.height / cam.zoom) * 0.28;
         const lightR = 22;
         const lightGap = 55;
         const bgW = 80, bgH = 180;
@@ -389,8 +397,8 @@ class RaceScene extends Phaser.Scene {
         soundFX.updateTireScreech(0);
 
         const cam = this.cameras.main;
-        const cw = cam.width;
-        const ch = cam.height;
+        const cw = cam.width / cam.zoom;
+        const ch = cam.height / cam.zoom;
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.75);
         overlay.fillRect(0, 0, cw, ch);
@@ -428,8 +436,8 @@ class RaceScene extends Phaser.Scene {
         }
 
         const cam = this.cameras.main;
-        const cw = cam.width;
-        const ch = cam.height;
+        const cw = cam.width / cam.zoom;
+        const ch = cam.height / cam.zoom;
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.85);
         overlay.fillRect(0, 0, cw, ch);
@@ -956,8 +964,9 @@ class RaceScene extends Phaser.Scene {
 
         // Podium position: near the start line so it's visible
         const startWp = this.track.waypoints[this.track.startLineIndex];
-        const podiumX = startWp[0] + 120;
-        const podiumY = startWp[1] - 100 + slot * 60;
+        const ts = this.track.truckScale || 1;
+        const podiumX = startWp[0] + 120 * ts;
+        const podiumY = startWp[1] - 100 * ts + slot * 60 * ts;
         truck._podiumTarget = { x: podiumX, y: podiumY };
 
         // Draw podium visual for this slot
@@ -968,21 +977,23 @@ class RaceScene extends Phaser.Scene {
         // Draw podium block + position label near start line
         const gfx = this.add.graphics().setDepth(900);
         const startWp = this.track.waypoints[this.track.startLineIndex];
-        const px = startWp[0] + 120, py = startWp[1] - 100 + slot * 60;
-        const heights = [40, 30, 22]; // 1st tallest
+        const ts = this.track.truckScale || 1;
+        const px = startWp[0] + 120 * ts, py = startWp[1] - 100 * ts + slot * 60 * ts;
+        const heights = [40 * ts, 30 * ts, 22 * ts]; // 1st tallest
         const colors = [0xffd700, 0xc0c0c0, 0xcd7f32]; // gold, silver, bronze
         const labels = ['1st', '2nd', '3rd'];
-        const bw = 50, bh = heights[slot];
+        const bw = 50 * ts, bh = heights[slot];
 
         // Podium block
         gfx.fillStyle(colors[slot], 0.9);
-        gfx.fillRect(px - bw / 2, py + 10, bw, bh);
+        gfx.fillRect(px - bw / 2, py + 10 * ts, bw, bh);
         gfx.lineStyle(2, 0xffffff, 0.5);
-        gfx.strokeRect(px - bw / 2, py + 10, bw, bh);
+        gfx.strokeRect(px - bw / 2, py + 10 * ts, bw, bh);
 
         // Position label
-        this.add.text(px, py + 10 + bh / 2, labels[slot], {
-            fontSize: '10px',
+        const fontSize = Math.max(8, Math.round(10 * ts));
+        this.add.text(px, py + 10 * ts + bh / 2, labels[slot], {
+            fontSize: fontSize + 'px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#000000'
         }).setOrigin(0.5).setDepth(901);
@@ -1004,7 +1015,8 @@ class RaceScene extends Phaser.Scene {
         const playerSlot = this._podiumNextSlot++;
         if (playerSlot < 3) {
             const startWp = this.track.waypoints[this.track.startLineIndex];
-            this.playerTruck._podiumTarget = { x: startWp[0] + 120, y: startWp[1] - 100 + playerSlot * 60 };
+            const ts = this.track.truckScale || 1;
+            this.playerTruck._podiumTarget = { x: startWp[0] + 120 * ts, y: startWp[1] - 100 * ts + playerSlot * 60 * ts };
             this._drawPodiumSlot(playerSlot, this.playerTruck);
         }
 
@@ -1079,12 +1091,15 @@ class RaceScene extends Phaser.Scene {
 
     showResults() {
         // Dim overlay (covers viewport, not world)
+        const cam = this.cameras.main;
+        const vw = cam.width / cam.zoom;
+        const vh = cam.height / cam.zoom;
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, 1280, 720);
+        overlay.fillRect(0, 0, vw, vh);
         overlay.setDepth(980).setScrollFactor(0);
 
-        const cx = 640, cy = 360;
+        const cx = vw / 2, cy = vh / 2;
         const style = {
             fontSize: '20px', fontFamily: 'Arial, sans-serif', color: '#ffffff',
             stroke: '#000000', strokeThickness: 4

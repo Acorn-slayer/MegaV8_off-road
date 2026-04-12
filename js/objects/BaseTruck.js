@@ -41,8 +41,8 @@ class BaseTruck extends Phaser.GameObjects.Container {
 
         // ── Draw the truck ─────────────────────────────────────
         this.truckGraphics = this.vehicleType === 'bike'
-            ? this.createBikeGraphics(scene, color)
-            : this.createTruckGraphics(scene, color);
+            ? this.createBikeGraphics(scene, color)            : this.vehicleType === 'f1'
+            ? this.createF1Graphics(scene, color)            : this.createTruckGraphics(scene, color);
         this.add(this.truckGraphics);    }
 
     // Apply track-based truck scaling
@@ -111,6 +111,56 @@ class BaseTruck extends Phaser.GameObjects.Container {
         gfx.fillRect(3, -10, 3, 1);
         gfx.fillRect(-5, -10, 1, 3);
         gfx.fillRect(4, -10, 1, 3);
+
+        return gfx;
+    }
+
+    createF1Graphics(scene, color) {
+        const gfx = scene.add.graphics();
+
+        // Rear wing
+        gfx.fillStyle(0x333333, 1);
+        gfx.fillRect(-7, 7, 14, 2);
+        gfx.fillRect(-1, 5, 2, 4);
+
+        // Body — narrow, elongated F1 shape
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-4, -12, 8, 24, 3);
+
+        // Nose cone (pointed)
+        gfx.fillStyle(color, 1);
+        gfx.fillTriangle(0, -16, -3, -12, 3, -12);
+
+        // Cockpit opening
+        gfx.fillStyle(0x222222, 0.9);
+        gfx.fillRoundedRect(-2, -5, 4, 5, 2);
+
+        // Driver helmet
+        gfx.fillStyle(0xeeeeee, 1);
+        gfx.fillCircle(0, -3, 2);
+
+        // Front wing
+        gfx.fillStyle(0x444444, 1);
+        gfx.fillRect(-6, -13, 12, 2);
+
+        // Front wheels
+        gfx.fillStyle(0x111111, 1);
+        gfx.fillRect(-8, -11, 3, 5);
+        gfx.fillRect(5, -11, 3, 5);
+
+        // Rear wheels (wider)
+        gfx.fillStyle(0x111111, 1);
+        gfx.fillRect(-9, 2, 4, 6);
+        gfx.fillRect(5, 2, 4, 6);
+
+        // Side pods
+        gfx.fillStyle(color, 0.8);
+        gfx.fillRect(-6, -3, 2, 8);
+        gfx.fillRect(4, -3, 2, 8);
+
+        // Exhaust / diffuser
+        gfx.fillStyle(0x555555, 1);
+        gfx.fillRect(-3, 8, 6, 2);
 
         return gfx;
     }
