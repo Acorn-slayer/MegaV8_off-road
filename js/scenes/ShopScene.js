@@ -16,7 +16,7 @@ class ShopScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Race number
-        this.add.text(400, 70, `Race ${GameState.raceNumber} Complete — Next Race: ${GameState.raceNumber + 1}`, {
+        this.add.text(640, 70, `Race ${GameState.raceNumber} Complete — Next Race: ${GameState.raceNumber + 1}`, {
             fontSize: '14px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
         }).setOrigin(0.5);
 
@@ -218,9 +218,10 @@ class ShopScene extends Phaser.Scene {
 
     updateStatsPreview() {
         const s = GameState.getPlayerStats();
-        const aiB = GameState.getAiBoost();
+        const aiMult = GameState.getAiPenaltyMultiplier ? GameState.getAiPenaltyMultiplier() : 1;
+        const aiPct = Math.round(aiMult * 100);
         this.statsText.setText(
-            `Your stats: Speed ${s.topSpeed} | Accel ${s.acceleration} | Handling ${s.handling.toFixed(1)} | Nitro ${s.nitroMax}   •   AI boost this race: +${aiB.topSpeed} speed, +${aiB.acceleration} accel`
+            `Your stats: Speed ${s.topSpeed} | Accel ${s.acceleration} | Handling ${s.handling.toFixed(1)} | Nitro ${s.nitroMax}   •   AI power this race: ${aiPct}%`
         );
     }
 }

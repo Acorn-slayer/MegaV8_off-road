@@ -251,6 +251,12 @@
                     <span style="min-width:30px;font-size:10px">1.0x</span>
                 </div>
                 <div class="form-row">
+                    <label>Center</label>
+                    <label style="min-width:auto">
+                        <input type="checkbox" id="showCenterline" onchange="updatePreview()"> Dashed line
+                    </label>
+                </div>
+                <div class="form-row">
                     <label>Track</label>
                     <input type="color" id="colTrack" value="#8B7355" oninput="updatePreview()">
                     <label style="min-width:auto">Border</label>
@@ -310,6 +316,7 @@
     let loadedFileName = null;         // name of the loaded JSON file
     let loadedFileHandle = null;       // File System Access API handle for in-place save
     let showTruckPreview = false;       // show truck while adjusting scale
+    let showCenterline = false;         // draw thin dashed white centerline for debug/realism
     let customStartLineIdx = 0;       // waypoint index for start/finish line
     let freehandStartAngle = -90;      // initial heading from freehand draw
 
@@ -536,6 +543,25 @@
         for (let i=1;i<wps.length;i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
         if (res.gap <= 15) ctx.closePath();
         ctx.stroke();
+
+        // Optional centerline overlay (thin white dashes)
+        const centerToggle = document.getElementById('showCenterline');
+        showCenterline = !!(centerToggle && centerToggle.checked);
+        if (showCenterline) {
+            ctx.save();
+            ctx.strokeStyle = '#ffffff';
+            ctx.globalAlpha = 0.7;
+            ctx.lineWidth = Math.max(1, 1.3 * sc);
+            ctx.setLineDash([Math.max(4, 10 * sc), Math.max(3, 8 * sc)]);
+            ctx.lineCap = 'butt';
+            ctx.beginPath();
+            ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
+            for (let i = 1; i < wps.length; i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
+            if (res.gap <= 15) ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+            ctx.setLineDash([]);
+        }
 
         // Walls (skip erased ones) — alternating red/white
         if (res.walls.length) {
@@ -1117,6 +1143,13 @@
             } else if (currentTool === 'freehand') {
                 isDrawing = true;
                 freehandPts = [{ x: mx, y: my }];
+            } else if (currentTool === 'select') {
+                const sec = findNearestSectionOnTrack(mx, my);
+                if (sec >= 0) {
+                    selIdx = sec;
+                    renderSections();
+                    updatePreview();
+                }
             }
         });
 
@@ -1224,6 +1257,32 @@
                 }
             }
             ctx.restore();
+        }
+
+        function findNearestSectionOnTrack(mx, my) {
+            if (!lastBuildResult || !lastBuildResult.waypoints || !lastBuildResult.waypoints.length) return -1;
+            const wps = lastBuildResult.waypoints;
+            const secOf = lastBuildResult.secOf || [];
+            const trackW = parseFloat(document.getElementById('propWidth').value) || 70;
+
+            let bestI = -1;
+            let bestD2 = Infinity;
+            for (let i = 0; i < wps.length; i++) {
+                const sx = lastTx(wps[i][0]);
+                const sy = lastTy(wps[i][1]);
+                const d2 = (mx - sx) * (mx - sx) + (my - sy) * (my - sy);
+                if (d2 < bestD2) { bestD2 = d2; bestI = i; }
+            }
+
+            if (bestI < 0) return -1;
+
+            // Require click reasonably close to the track centerline
+            const pxRadius = Math.max(10, (trackW * 0.5) * Math.abs(lastTx(1) - lastTx(0)) + 6);
+            if (bestD2 > pxRadius * pxRadius) return -1;
+
+            const sec = secOf[bestI];
+            if (typeof sec === 'number' && sec >= 0 && sec < sections.length) return sec;
+            return -1;
         }
     })();
 

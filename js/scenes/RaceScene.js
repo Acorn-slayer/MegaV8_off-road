@@ -359,6 +359,15 @@ class RaceScene extends Phaser.Scene {
 
     // ── Game Loop ───────────────────────────────────────────────
     update(time, delta) {
+        // ESC → back to title screen (works even during countdown)
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            soundFX.stopEngine();
+            soundFX.stopMusic();
+            soundFX.updateTireScreech(0);
+            this.scene.start('BootScene');
+            return;
+        }
+
         // During countdown, freeze all trucks
         if (this._countdownActive) {
             for (const t of this.allTrucks) {
@@ -390,15 +399,6 @@ class RaceScene extends Phaser.Scene {
                     this.playerTruck.y = this.playerTruck._podiumTarget.y;
                 }
             }
-            return;
-        }
-
-        // ESC → back to title screen
-        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
-            soundFX.stopEngine();
-            soundFX.stopMusic();
-            soundFX.updateTireScreech(0);
-            this.scene.start('BootScene');
             return;
         }
 
