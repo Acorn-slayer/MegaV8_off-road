@@ -41,8 +41,12 @@ class BaseTruck extends Phaser.GameObjects.Container {
 
         // ── Draw the truck ─────────────────────────────────────
         this.truckGraphics = this.vehicleType === 'bike'
-            ? this.createBikeGraphics(scene, color)            : this.vehicleType === 'f1'
-            ? this.createF1Graphics(scene, color)            : this.createTruckGraphics(scene, color);
+            ? this.createBikeGraphics(scene, color)
+            : this.vehicleType === 'f1'
+            ? this.createF1Graphics(scene, color)
+            : this.vehicleType === 'tank'
+            ? this.createTankGraphics(scene, color)
+            : this.createTruckGraphics(scene, color);
         this.add(this.truckGraphics);    }
 
     // Apply track-based truck scaling
@@ -161,6 +165,45 @@ class BaseTruck extends Phaser.GameObjects.Container {
         // Exhaust / diffuser
         gfx.fillStyle(0x555555, 1);
         gfx.fillRect(-3, 8, 6, 2);
+
+        return gfx;
+    }
+
+    createTankGraphics(scene, color) {
+        const gfx = scene.add.graphics();
+
+        // Treads — wide dark rectangles on both sides
+        gfx.fillStyle(0x333333, 1);
+        gfx.fillRect(-9, -11, 4, 22);
+        gfx.fillRect(5, -11, 4, 22);
+
+        // Tread link detail
+        gfx.fillStyle(0x555555, 1);
+        for (let i = 0; i < 4; i++) {
+            gfx.fillRect(-9, -9 + i * 5, 4, 2);
+            gfx.fillRect(5, -9 + i * 5, 4, 2);
+        }
+
+        // Hull body
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-5, -10, 10, 20, 1);
+
+        // Turret shadow ring
+        gfx.fillStyle(0x000000, 0.3);
+        gfx.fillCircle(0, -1, 6);
+
+        // Turret dome
+        gfx.fillStyle(color, 1);
+        gfx.fillCircle(0, -1, 4);
+
+        // Barrel (points forward = top in local space)
+        gfx.fillStyle(0x222222, 1);
+        gfx.fillRect(-1, -14, 2, 10);
+
+        // Exhaust vents at rear
+        gfx.fillStyle(0x444444, 1);
+        gfx.fillRect(-3, 9, 2, 2);
+        gfx.fillRect(1, 9, 2, 2);
 
         return gfx;
     }

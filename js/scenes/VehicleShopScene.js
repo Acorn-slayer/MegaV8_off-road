@@ -97,7 +97,7 @@ class VehicleShopScene extends Phaser.Scene {
             statX += 150;
         }
 
-        const descText = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'Formula 1 Car' : 'Truck';
+        const descText = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'Formula 1 Car' : preset.type === 'tank' ? 'Battle Tank' : 'Truck';
         this.add.text(cx, cy + 52, descText, {
             fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
         }).setOrigin(0.5);
@@ -200,6 +200,29 @@ class VehicleShopScene extends Phaser.Scene {
             gfx.fillStyle(color, 0.8);
             gfx.fillRect(cx - 6 * scale, cy - 3 * scale, 2 * scale, 8 * scale);
             gfx.fillRect(cx + 4 * scale, cy - 3 * scale, 2 * scale, 8 * scale);
+        } else if (preset.type === 'tank') {
+            // Treads
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 9 * scale, cy - 11 * scale, 4 * scale, 22 * scale);
+            gfx.fillRect(cx + 5 * scale, cy - 11 * scale, 4 * scale, 22 * scale);
+            // Tread links
+            gfx.fillStyle(0x555555, 1);
+            for (let k = 0; k < 4; k++) {
+                gfx.fillRect(cx - 9 * scale, cy + (-9 + k * 5) * scale, 4 * scale, 2 * scale);
+                gfx.fillRect(cx + 5 * scale, cy + (-9 + k * 5) * scale, 4 * scale, 2 * scale);
+            }
+            // Hull
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 5 * scale, cy - 10 * scale, 10 * scale, 20 * scale, 2);
+            // Turret shadow
+            gfx.fillStyle(0x000000, 0.3);
+            gfx.fillCircle(cx, cy - 1 * scale, 6 * scale);
+            // Turret
+            gfx.fillStyle(color, 1);
+            gfx.fillCircle(cx, cy - 1 * scale, 4 * scale);
+            // Barrel
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRect(cx - 1 * scale, cy - 14 * scale, 2 * scale, 10 * scale);
         } else {
             const tw = 26, th = 42;
             gfx.fillStyle(color, 1);

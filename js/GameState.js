@@ -26,7 +26,8 @@ const GameState = {
         0xff66cc: { name: 'Pink Rocket',    topSpeed: 220, acceleration: 135, handling: 2.6, nitro: 4 },
         0xff8800: { name: 'Orange Blaze',   topSpeed: 195, acceleration: 155, handling: 2.9, nitro: 7 },
         0x000000: { name: 'Night Rider',    topSpeed: 225, acceleration: 170, handling: 3.8, nitro: 6, type: 'bike', shopOnly: true, price: 10000 },
-        0xcc0000: { name: 'F1 Viper',        topSpeed: 260, acceleration: 180, handling: 4.2, nitro: 3, type: 'f1', shopOnly: true, price: 15000 },
+        0xcc0000: { name: 'F1 Viper',        topSpeed: 260, acceleration: 180, handling: 4.2, nitro: 3, type: 'f1',   shopOnly: true, price: 15000 },
+        0x556B2F: { name: 'Iron Beast',       topSpeed:  90, acceleration:  60, handling: 2.5, nitro: 2, type: 'tank', shopOnly: true, price: 20000 },
     },
 
     // Player upgrade levels (0-10 each)

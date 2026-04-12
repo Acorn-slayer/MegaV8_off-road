@@ -23,10 +23,32 @@ class RaceScene extends Phaser.Scene {
         // ── Player truck ────────────────────────────────────────
         const startWp = this.track.waypoints[this.track.startLineIndex];
         const truckScale = this.track.truckScale || 1;
+
+        // Compute start heading and grid vectors before placing any truck
+        const _siNext = (this.track.startLineIndex + 1) % this.track.waypoints.length;
+        const _nextWp = this.track.waypoints[_siNext];
+        const startAngle = Math.atan2(_nextWp[1] - startWp[1], _nextWp[0] - startWp[0]);
+        const _fwdX = Math.cos(startAngle), _fwdY = Math.sin(startAngle);
+        const _perpX = -Math.sin(startAngle), _perpY = Math.cos(startAngle);
+        const _rowSp = 32 * truckScale;   // row spacing along track
+        const _laneSp = 24 * truckScale;  // lane spacing perpendicular to track
+        // 4-slot 2×2 staggered grid; slot 0=player, 1-3=AI
+        const _gridSlots = [
+            { rowsBack: 1, side: -0.5 }, // slot 0 — player  (row 1, left)
+            { rowsBack: 1, side:  0.5 }, // slot 1 — AI #0   (row 1, right)
+            { rowsBack: 2, side: -0.5 }, // slot 2 — AI #1   (row 2, left)
+            { rowsBack: 2, side:  0.5 }, // slot 3 — AI #2   (row 2, right)
+        ];
+        const _slotPos = (s) => ({
+            x: startWp[0] - _fwdX * s.rowsBack * _rowSp + _perpX * s.side * _laneSp,
+            y: startWp[1] - _fwdY * s.rowsBack * _rowSp + _perpY * s.side * _laneSp,
+        });
+
         const playerColor = GameState.getPlayerColor();
         const playerPreset = GameState.getBaseStats();
         const playerType = playerPreset.type || 'truck';
-        this.playerTruck = new Truck(this, startWp[0], startWp[1] - 10 * truckScale, playerColor, playerType);
+        const _p0 = _slotPos(_gridSlots[0]);
+        this.playerTruck = new Truck(this, _p0.x, _p0.y, playerColor, playerType);
 
         // Apply player stats from upgrades + truck preset
         const pStats = GameState.getPlayerStats();
@@ -36,11 +58,6 @@ class RaceScene extends Phaser.Scene {
         this.playerTruck.nitroMax = pStats.nitroMax;
         this.playerTruck.nitroFuel = pStats.nitroMax;
 
-        const nextWp = this.track.waypoints[1];
-        const startAngle = Math.atan2(
-            nextWp[1] - startWp[1],
-            nextWp[0] - startWp[0]
-        );
         this.playerTruck.angle = startAngle;
 
         // ── AI Opponents (with penalty that fades over races + upgrades) ──
@@ -50,9 +67,9 @@ class RaceScene extends Phaser.Scene {
         const allAiColors = [0x3388ff, 0xffcc00, 0x33cc33, 0xff66cc, 0xff8800];
         const availColors = allAiColors.filter(c => c !== GameState.playerColor);
         const aiConfigs = [
-            { color: availColors[0], difficulty: 'easy',   offset: 20 * truckScale },
-            { color: availColors[1], difficulty: 'medium', offset: -20 * truckScale },
-            { color: availColors[2], difficulty: 'hard',   offset: 35 * truckScale },
+            { color: availColors[0], difficulty: 'easy',   slot: _gridSlots[1] },
+            { color: availColors[1], difficulty: 'medium', slot: _gridSlots[2] },
+            { color: availColors[2], difficulty: 'hard',   slot: _gridSlots[3] },
         ];
         // Map color→name for results display
         const colorNames = {
@@ -61,10 +78,11 @@ class RaceScene extends Phaser.Scene {
         };
         for (let ci = 0; ci < aiConfigs.length; ci++) {
             const cfg = aiConfigs[ci];
+            const _gp = _slotPos(cfg.slot);
             const ai = new AiTruck(
                 this,
-                startWp[0] + cfg.offset,
-                startWp[1] + (15 + Math.abs(cfg.offset)) * truckScale,
+                _gp.x,
+                _gp.y,
                 cfg.color,
                 cfg.difficulty
             );
@@ -91,7 +109,7 @@ class RaceScene extends Phaser.Scene {
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            const vehicleScale = t.vehicleType === 'bike' ? 0.75 : t.vehicleType === 'f1' ? 0.85 : 1;
+            const vehicleScale = t.vehicleType === 'bike' ? 0.75 : t.vehicleType === 'f1' ? 0.85 : t.vehicleType === 'tank' ? 1.1 : 1;
             t.setTruckScale(truckScale * vehicleScale);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
@@ -113,6 +131,7 @@ class RaceScene extends Phaser.Scene {
         this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         this.cKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
         this.musicKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+        this.vKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.V);
         this.touchControls = new TouchControls(this);
         this._pauseMenuActive = false;
         this._pauseMenuStage = null;
@@ -136,6 +155,7 @@ class RaceScene extends Phaser.Scene {
         this.respawnThreshold = 3;        // seconds before auto-respawn
         this.goingWrongWay = false;        // true when player drives backward
         this._podiumNextSlot = 0;          // next podium position to assign (0=1st, 1=2nd, 2=3rd)
+        this.cannonShells = [];             // active cannon shells (tank weapon)
 
         // ── Coins & Nitro Pickups ───────────────────────────────
         this.pickups = [];
@@ -169,6 +189,10 @@ class RaceScene extends Phaser.Scene {
 
         this.nitroText = this.add.text(10, 30, '', {
             ...hudStyle, color: '#00ccff'
+        }).setDepth(900).setScrollFactor(0);
+
+        this.cannonText = this.add.text(10, 30, '', {
+            ...hudStyle, color: '#ffaa00'
         }).setDepth(900).setScrollFactor(0);
 
         this.moneyText = this.add.text(vw - 10, 10, '', {
@@ -616,6 +640,11 @@ class RaceScene extends Phaser.Scene {
             }
         }
 
+        // V → tank cannon fire
+        if (this.playerTruck.vehicleType === 'tank' && Phaser.Input.Keyboard.JustDown(this.vKey)) {
+            this._fireCannonShell(this.playerTruck);
+        }
+
         const dt = delta / 1000;
 
         // Merge keyboard + touch input
@@ -735,7 +764,14 @@ class RaceScene extends Phaser.Scene {
         // ── Update HUD ─────────────────────────────────────────
         const speed = Math.abs(Math.round(this.playerTruck.speed));
         this.speedText.setText(`Speed: ${speed} mph`);
-        this.nitroText.setText(`Nitro: ${'█'.repeat(Math.ceil(this.playerTruck.nitroFuel))}${'░'.repeat(Math.ceil(this.playerTruck.nitroMax - this.playerTruck.nitroFuel))}`);
+        if (this.playerTruck.vehicleType === 'tank') {
+            this.nitroText.setText('');
+            const elapsed = this.playerTruck._lastShot ? (this.time.now - this.playerTruck._lastShot) / 1000 : 99;
+            this.cannonText.setText(elapsed >= 1.5 ? '🎯 [V] FIRE! READY' : `🎯 Cannon: ${(1.5 - elapsed).toFixed(1)}s`);
+        } else {
+            this.cannonText.setText('');
+            this.nitroText.setText(`Nitro: ${'█'.repeat(Math.ceil(this.playerTruck.nitroFuel))}${'░'.repeat(Math.ceil(this.playerTruck.nitroMax - this.playerTruck.nitroFuel))}`);
+        }
         this.offTrackText.setText(
             this.goingWrongWay ? '⚠ WRONG WAY!' :
             !this.playerTruck.onTrack && this.offTrackTimer > 1 ? `⚠ OFF TRACK! Respawn in ${Math.ceil(this.respawnThreshold - this.offTrackTimer)}...` :
@@ -758,6 +794,9 @@ class RaceScene extends Phaser.Scene {
 
         // ── Hazard effects on all trucks ────────────────────────
         this.applyHazardEffects(dt);
+
+        // ── Cannon shells (tank weapon) ─────────────────────────
+        this._updateCannonShells(dt);
 
         // ── Dust particles behind trucks ───────────────────────
         for (const { truck, particles } of this.dustEmitters) {
@@ -1293,22 +1332,112 @@ class RaceScene extends Phaser.Scene {
                     b.x += nx * overlap;
                     b.y += ny * overlap;
 
-                    // Only penalize speed once per collision (not every frame)
-                    const now = this.time.now;
-                    if (!a._lastBumpTime || now - a._lastBumpTime > 500) {
-                        if (a.speed !== undefined) a.speed *= 0.95;
-                        a._lastBumpTime = now;
-                    }
-                    if (!b._lastBumpTime || now - b._lastBumpTime > 500) {
-                        if (b.speed !== undefined) b.speed *= 0.95;
-                        b._lastBumpTime = now;
-                    }
-
-                    // Screen shake when player is involved
-                    if (a === this.playerTruck || b === this.playerTruck) {
-                        this.cameras.main.shake(150, 0.005);
+                    // ── Tank ramming: rammed truck respawns ──────────────
+                    const isTankA = a.vehicleType === 'tank';
+                    const isTankB = b.vehicleType === 'tank';
+                    if (isTankA || isTankB) {
+                        const tank   = isTankA ? a : b;
+                        const rammed = isTankA ? b : a;
+                        tank.speed *= 0.98; // tank barely slows down
+                        if (rammed === this.playerTruck) {
+                            rammed.speed = 0;
+                            this.cameras.main.shake(400, 0.015);
+                        } else {
+                            this.respawnAi(rammed);
+                        }
                         soundFX.playCrash();
+                    } else {
+                        // Normal speed penalty (once per 500ms)
+                        const now = this.time.now;
+                        if (!a._lastBumpTime || now - a._lastBumpTime > 500) {
+                            if (a.speed !== undefined) a.speed *= 0.95;
+                            a._lastBumpTime = now;
+                        }
+                        if (!b._lastBumpTime || now - b._lastBumpTime > 500) {
+                            if (b.speed !== undefined) b.speed *= 0.95;
+                            b._lastBumpTime = now;
+                        }
+
+                        // Screen shake when player is involved
+                        if (a === this.playerTruck || b === this.playerTruck) {
+                            this.cameras.main.shake(150, 0.005);
+                            soundFX.playCrash();
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    // ── Tank cannon: fire a shell forward ──────────────────────
+    _fireCannonShell(truck) {
+        const now = this.time.now;
+        if (truck._lastShot && now - truck._lastShot < 1500) return; // 1.5s cooldown
+        truck._lastShot = now;
+
+        const offsetDist = 22 * (this.track.truckScale || 1);
+        const sx = truck.x + Math.cos(truck.angle) * offsetDist;
+        const sy = truck.y + Math.sin(truck.angle) * offsetDist;
+
+        const gfx = this.add.graphics();
+        gfx.fillStyle(0xffaa00, 1);
+        gfx.fillCircle(0, 0, 5);
+        gfx.lineStyle(2, 0xff6600, 1);
+        gfx.strokeCircle(0, 0, 5);
+        gfx.setPosition(sx, sy).setDepth(200);
+
+        this.cannonShells.push({
+            x: sx, y: sy,
+            angle: truck.angle,
+            speed: 380,
+            maxDist: 500,
+            distTraveled: 0,
+            gfx,
+            owner: truck,
+        });
+    }
+
+    // ── Tank cannon: move shells and check hits ─────────────────
+    _updateCannonShells(dt) {
+        for (let i = this.cannonShells.length - 1; i >= 0; i--) {
+            const shell = this.cannonShells[i];
+
+            const mx = Math.cos(shell.angle) * shell.speed * dt;
+            const my = Math.sin(shell.angle) * shell.speed * dt;
+            shell.x += mx;
+            shell.y += my;
+            shell.distTraveled += Math.sqrt(mx * mx + my * my);
+            shell.gfx.setPosition(shell.x, shell.y);
+
+            if (shell.distTraveled >= shell.maxDist) {
+                shell.gfx.destroy();
+                this.cannonShells.splice(i, 1);
+                continue;
+            }
+
+            let hit = false;
+            for (const truck of this.allTrucks) {
+                if (truck === shell.owner) continue;
+                const dx = truck.x - shell.x;
+                const dy = truck.y - shell.y;
+                if (dx * dx + dy * dy < 22 * 22) {
+                    // Apply oil-spin + near-stop (like driving over oil)
+                    if (!truck._oilCooldown || truck._oilCooldown <= 0) {
+                        truck._oilSpinning = true;
+                        truck._oilSpinTotal = 0;
+                        truck._oilSpinTarget = Math.PI * 2;
+                        truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
+                        truck._oilSpinSpeed = 10;
+                        truck.speed *= 0.1;
+                        truck._oilCooldown = 3.0;
+                        if (truck === this.playerTruck) {
+                            this.cameras.main.shake(300, 0.01);
+                        }
+                    }
+                    shell.gfx.destroy();
+                    this.cannonShells.splice(i, 1);
+                    hit = true;
+                    break;
                 }
             }
         }
