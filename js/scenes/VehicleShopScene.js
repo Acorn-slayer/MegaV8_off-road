@@ -13,7 +13,7 @@ class VehicleShopScene extends Phaser.Scene {
             color: '#ffcc00', stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
-        this.add.text(640, 52, 'Regular trucks: $5 000. Specials: bike $10k, F1 $20k, tank $30k.', {
+        this.add.text(640, 52, 'Regular trucks: $5 000. Specials: bike $10k, F1 $20k, tank $30k, jet $40k.', {
             fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
         }).setOrigin(0.5);
 
@@ -32,7 +32,7 @@ class VehicleShopScene extends Phaser.Scene {
             return a.preset.name.localeCompare(b.preset.name);
         });
 
-        const cols = 3;
+        const cols = 4;
         const cardW = 235, cardH = 195, gapX = 18, gapY = 14;
         const totalW = cols * cardW + (cols - 1) * gapX;
         const startX = (1280 - totalW) / 2;
@@ -124,7 +124,7 @@ class VehicleShopScene extends Phaser.Scene {
         }
 
         // Type label
-        const typeLabel = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'F1 Car' : preset.type === 'tank' ? 'Battle Tank' : 'Truck';
+        const typeLabel = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'F1 Car' : preset.type === 'tank' ? 'Battle Tank' : preset.type === 'jet' ? 'Fighter Jet' : 'Truck';
         this.add.text(cx, y + 148, typeLabel, {
             fontSize: '9px', fontFamily: 'Arial, sans-serif', color: '#888888'
         }).setOrigin(0.5);
@@ -252,6 +252,24 @@ class VehicleShopScene extends Phaser.Scene {
             // Barrel
             gfx.fillStyle(0x222222, 1);
             gfx.fillRect(cx - 1 * scale, cy - 14 * scale, 2 * scale, 10 * scale);
+        } else if (preset.type === 'jet') {
+            gfx.fillStyle(0x2b2f39, 1);
+            gfx.fillTriangle(cx, cy - 17 * scale, cx - 2 * scale, cy - 11 * scale, cx + 2 * scale, cy - 11 * scale);
+
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 11 * scale, 6 * scale, 24 * scale, 2 * scale);
+            gfx.fillTriangle(cx, cy - 18 * scale, cx - 3 * scale, cy - 11 * scale, cx + 3 * scale, cy - 11 * scale);
+            gfx.fillTriangle(cx - 12 * scale, cy - 2 * scale, cx - 3 * scale, cy - 6 * scale, cx - 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx + 12 * scale, cy - 2 * scale, cx + 3 * scale, cy - 6 * scale, cx + 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx - 7 * scale, cy + 11 * scale, cx - 2 * scale, cy + 6 * scale, cx - 2 * scale, cy + 15 * scale);
+            gfx.fillTriangle(cx + 7 * scale, cy + 11 * scale, cx + 2 * scale, cy + 6 * scale, cx + 2 * scale, cy + 15 * scale);
+
+            gfx.fillStyle(0x87d7ff, 0.95);
+            gfx.fillRoundedRect(cx - 1.5 * scale, cy - 6 * scale, 3 * scale, 8 * scale, 1.5 * scale);
+
+            gfx.fillStyle(0x1e232c, 1);
+            gfx.fillRect(cx - 1 * scale, cy + 11 * scale, 2 * scale, 4 * scale);
+            gfx.fillRect(cx - 2 * scale, cy + 6 * scale, 4 * scale, 2 * scale);
         } else {
             const tw = 26, th = 42;
             gfx.fillStyle(color, 1);

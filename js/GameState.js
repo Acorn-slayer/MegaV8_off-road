@@ -29,6 +29,7 @@ const GameState = {
         0x000000: { name: 'Night Rider',   topSpeed: 237, acceleration: 178, handling: 3.6, nitro: 5, type: 'bike',  price: 10000 },
         0xcc0000: { name: 'F1 Viper',      topSpeed: 273, acceleration: 225, handling: 4.0, nitro: 3, type: 'f1',    price: 20000 },
         0x556B2F: { name: 'Iron Beast',    topSpeed:  97, acceleration:  64, handling: 2.4, nitro: 2, type: 'tank',  price: 30000 },
+        0x99d9ea: { name: 'Sky Fury',      topSpeed: 274, acceleration: 214, handling: 3.7, nitro: 4, type: 'jet',   price: 40000 },
     },
 
     // Per-vehicle upgrade levels — { [colorKey]: { topSpeed, acceleration, handling, nitro } }

@@ -42,7 +42,7 @@ class TruckSelectScene extends Phaser.Scene {
             return;
         }
 
-        const cols = 3;
+        const cols = 4;
         const rows = Math.ceil(colors.length / cols);
         const cardW = 220;
         const cardH = 200;
@@ -213,6 +213,21 @@ class TruckSelectScene extends Phaser.Scene {
             gfx.fillCircle(cx, cy - 1 * scale, 4 * scale);
             gfx.fillStyle(0x222222, 1);
             gfx.fillRect(cx - 1 * scale, cy - 14 * scale, 2 * scale, 10 * scale);
+        } else if (preset.type === 'jet') {
+            gfx.fillStyle(0x2b2f39, 1);
+            gfx.fillTriangle(cx, cy - 17 * scale, cx - 2 * scale, cy - 11 * scale, cx + 2 * scale, cy - 11 * scale);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 11 * scale, 6 * scale, 24 * scale, 2 * scale);
+            gfx.fillTriangle(cx, cy - 18 * scale, cx - 3 * scale, cy - 11 * scale, cx + 3 * scale, cy - 11 * scale);
+            gfx.fillTriangle(cx - 12 * scale, cy - 2 * scale, cx - 3 * scale, cy - 6 * scale, cx - 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx + 12 * scale, cy - 2 * scale, cx + 3 * scale, cy - 6 * scale, cx + 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx - 7 * scale, cy + 11 * scale, cx - 2 * scale, cy + 6 * scale, cx - 2 * scale, cy + 15 * scale);
+            gfx.fillTriangle(cx + 7 * scale, cy + 11 * scale, cx + 2 * scale, cy + 6 * scale, cx + 2 * scale, cy + 15 * scale);
+            gfx.fillStyle(0x87d7ff, 0.95);
+            gfx.fillRoundedRect(cx - 1.5 * scale, cy - 6 * scale, 3 * scale, 8 * scale, 1.5 * scale);
+            gfx.fillStyle(0x1e232c, 1);
+            gfx.fillRect(cx - 1 * scale, cy + 11 * scale, 2 * scale, 4 * scale);
+            gfx.fillRect(cx - 2 * scale, cy + 6 * scale, 4 * scale, 2 * scale);
         } else {
             const tw = 26;
             const th = 42;

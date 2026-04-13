@@ -48,6 +48,8 @@ class BaseTruck extends Phaser.GameObjects.Container {
             ? this.createBikeGraphics(scene, color)
             : this.vehicleType === 'f1'
             ? this.createF1Graphics(scene, color)
+            : this.vehicleType === 'jet'
+            ? this.createJetGraphics(scene, color)
             : this.vehicleType === 'tank'
             ? this.createTankGraphics(scene, color)
             : this.createTruckGraphics(scene, color);
@@ -214,13 +216,40 @@ class BaseTruck extends Phaser.GameObjects.Container {
         return gfx;
     }
 
+    createJetGraphics(scene, color) {
+        const gfx = scene.add.graphics();
+
+        gfx.fillStyle(0x2b2f39, 1);
+        gfx.fillTriangle(0, -17, -2, -11, 2, -11);
+
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-3, -11, 6, 24, 2);
+        gfx.fillTriangle(0, -18, -3, -11, 3, -11);
+
+        gfx.fillStyle(color, 0.92);
+        gfx.fillTriangle(-12, -2, -3, -6, -3, 5);
+        gfx.fillTriangle(12, -2, 3, -6, 3, 5);
+        gfx.fillTriangle(-7, 11, -2, 6, -2, 15);
+        gfx.fillTriangle(7, 11, 2, 6, 2, 15);
+
+        gfx.fillStyle(0x87d7ff, 0.95);
+        gfx.fillRoundedRect(-1.5, -6, 3, 8, 1.5);
+
+        gfx.fillStyle(0x1e232c, 1);
+        gfx.fillRect(-1, 11, 2, 4);
+        gfx.fillRect(-2, 6, 4, 2);
+
+        return gfx;
+    }
+
     // ── Shared physics step ────────────────────────────────────
     applyPhysics(dt) {
         const isTank = this.vehicleType === 'tank';
+        const isJet = this.vehicleType === 'jet';
         const isOnTrack = this.isOnTrack(this.x, this.y);
-        this.onTrack = isTank ? true : isOnTrack;
+        this.onTrack = (isTank || isJet) ? true : isOnTrack;
 
-        // Tanks ignore grass slowdown and off-track speed limits.
+        // Tanks and jets ignore grass slowdown and off-track speed limits.
         const fric = this.onTrack ? this.friction : this.dirtFriction;
         this.speed *= fric;
 
@@ -233,7 +262,7 @@ class BaseTruck extends Phaser.GameObjects.Container {
         const absSpeed = Math.abs(this.speed);
         const speedRatio = (absSpeed / Math.max(gripSpeed, 1)) * 1.24;
 
-        if (absSpeed > 5 && (this.vx !== 0 || this.vy !== 0)) {
+        if (!isJet && absSpeed > 5 && (this.vx !== 0 || this.vy !== 0)) {
             // Current velocity direction
             const velAngle = Math.atan2(this.vy, this.vx);
             // Slip angle = difference between heading and velocity direction
@@ -263,7 +292,7 @@ class BaseTruck extends Phaser.GameObjects.Container {
         // Understeer at extreme overspeed — threshold scales with handling
         const handlingNorm = Phaser.Math.Clamp(this.handling / 3.0, 0.4, 1.5);
         const understeerThreshold = 1.15 + handlingNorm * 0.15; // ~1.21 low, ~1.38 high
-        if (speedRatio > understeerThreshold) {
+        if (!isJet && speedRatio > understeerThreshold) {
             const understeerStrength = Math.min((speedRatio - understeerThreshold) * 0.4, 0.6);
             const velAngle = Math.atan2(this.vy, this.vx);
             let headingErr = this.angle - velAngle;
@@ -278,7 +307,7 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.vy = Math.sin(moveAngle) * this.speed;
 
         // Drift indicator (for visuals like tire marks)
-        this.driftAmount = Math.min(Math.abs(this.slipAngle) / 0.4, 1.0);
+        this.driftAmount = isJet ? 0 : Math.min(Math.abs(this.slipAngle) / 0.4, 1.0);
 
         // Move
         this.x += this.vx * dt;

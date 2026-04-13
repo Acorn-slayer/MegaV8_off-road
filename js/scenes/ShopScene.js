@@ -194,6 +194,20 @@ class ShopScene extends Phaser.Scene {
             gfx.fillCircle(cx, cy, 4);
             gfx.fillStyle(0x222222, 1);
             gfx.fillRect(cx - 1, cy - 12, 2, 9);
+        } else if (type === 'jet') {
+            gfx.fillStyle(0x2b2f39, 1);
+            gfx.fillTriangle(cx, cy - 16, cx - 2, cy - 10, cx + 2, cy - 10);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3, cy - 10, 6, 22, 2);
+            gfx.fillTriangle(cx, cy - 17, cx - 3, cy - 10, cx + 3, cy - 10);
+            gfx.fillTriangle(cx - 11, cy - 2, cx - 3, cy - 6, cx - 3, cy + 4);
+            gfx.fillTriangle(cx + 11, cy - 2, cx + 3, cy - 6, cx + 3, cy + 4);
+            gfx.fillTriangle(cx - 6, cy + 10, cx - 2, cy + 6, cx - 2, cy + 14);
+            gfx.fillTriangle(cx + 6, cy + 10, cx + 2, cy + 6, cx + 2, cy + 14);
+            gfx.fillStyle(0x87d7ff, 1);
+            gfx.fillRoundedRect(cx - 1, cy - 5, 2, 7, 1);
+            gfx.fillStyle(0x1e232c, 1);
+            gfx.fillRect(cx - 1, cy + 10, 2, 3);
         } else {
             gfx.fillStyle(color, 1);
             gfx.fillRoundedRect(cx - 6, cy - 11, 12, 22, 3);

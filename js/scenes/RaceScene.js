@@ -109,7 +109,7 @@ class RaceScene extends Phaser.Scene {
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.72 : t.vehicleType === 'tank' ? 1.1 : 1;
+            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.72 : t.vehicleType === 'jet' ? 0.86 : t.vehicleType === 'tank' ? 1.1 : 1;
             t.setTruckScale(truckScale * vehicleScale);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
@@ -157,6 +157,7 @@ class RaceScene extends Phaser.Scene {
         this.goingWrongWay = false;        // true when player drives backward
         this._podiumNextSlot = 0;          // next podium position to assign (0=1st, 1=2nd, 2=3rd)
         this.cannonShells = [];             // active cannon shells (tank weapon)
+        this.guidedMissiles = [];           // active homing missiles (jet weapon)
 
         // ── Coins & Nitro Pickups ───────────────────────────────
         this.pickups = [];
@@ -1010,9 +1011,11 @@ class RaceScene extends Phaser.Scene {
             }
         }
 
-        // V → tank cannon fire
+        // V → tank cannon / jet missile
         if (this.playerTruck.vehicleType === 'tank' && Phaser.Input.Keyboard.JustDown(this.vKey)) {
             this._fireCannonShell(this.playerTruck);
+        } else if (this.playerTruck.vehicleType === 'jet' && Phaser.Input.Keyboard.JustDown(this.vKey)) {
+            this._fireGuidedMissile(this.playerTruck);
         }
 
         const dt = delta / 1000;
@@ -1181,6 +1184,8 @@ class RaceScene extends Phaser.Scene {
             this._setDomText('position', this.positionText.text);
             this._setDomText('controls', this.playerTruck.vehicleType === 'tank'
                 ? 'ARROWS DRIVE  |  SPACE BOOST  |  V FIRE  |  ESC MENU'
+                : this.playerTruck.vehicleType === 'jet'
+                ? 'ARROWS FLY  |  SPACE BOOST  |  V MISSILE  |  ESC MENU'
                 : 'ARROWS DRIVE  |  SPACE BOOST  |  ESC MENU');
         }
 
@@ -1189,6 +1194,7 @@ class RaceScene extends Phaser.Scene {
 
         // ── Cannon shells (tank weapon) ─────────────────────────
         this._updateCannonShells(dt);
+        this._updateGuidedMissiles(dt);
 
         // ── Dust particles behind trucks ───────────────────────
         for (const { truck, particles } of this.dustEmitters) {
@@ -1823,6 +1829,7 @@ class RaceScene extends Phaser.Scene {
                 const a = trucks[i];
                 const b = trucks[j];
                 if (a._destroyed || b._destroyed) continue;
+                if (a.vehicleType === 'jet' || b.vehicleType === 'jet') continue;
                 const dx = b.x - a.x;
                 const dy = b.y - a.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1913,6 +1920,57 @@ class RaceScene extends Phaser.Scene {
         });
     }
 
+    _findClosestAiTarget(fromTruck) {
+        let bestTarget = null;
+        let bestDistSq = Infinity;
+        for (const ai of this.aiTrucks) {
+            if (ai._destroyed || ai.raceFinished) continue;
+            const dx = ai.x - fromTruck.x;
+            const dy = ai.y - fromTruck.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestTarget = ai;
+            }
+        }
+        return bestTarget;
+    }
+
+    _fireGuidedMissile(truck) {
+        const now = this.time.now;
+        if (truck._lastMissileShot && now - truck._lastMissileShot < 1100) return;
+
+        const target = this._findClosestAiTarget(truck);
+        if (!target) return;
+
+        truck._lastMissileShot = now;
+
+        const offsetDist = 24 * (this.track.truckScale || 1);
+        const sx = truck.x + Math.cos(truck.angle) * offsetDist;
+        const sy = truck.y + Math.sin(truck.angle) * offsetDist;
+        const speed = 350;
+
+        const gfx = this.add.graphics();
+        gfx.fillStyle(0xd9edf8, 1);
+        gfx.fillTriangle(0, -7, -4, 5, 4, 5);
+        gfx.fillStyle(0xff6633, 1);
+        gfx.fillRect(-1.5, 4, 3, 4);
+        gfx.setPosition(sx, sy).setDepth(210);
+
+        this.guidedMissiles.push({
+            x: sx,
+            y: sy,
+            speed,
+            angle: truck.angle,
+            turnRate: 5.2,
+            spawnTime: now,
+            maxAge: 4.5,
+            gfx,
+            owner: truck,
+            target,
+        });
+    }
+
     // ── Tank cannon: update bouncing shells ─────────────────────
     _updateCannonShells(dt) {
         const walls = this.track.walls || [];
@@ -1967,24 +2025,50 @@ class RaceScene extends Phaser.Scene {
                 const dist = this._segmentPointDistance(prevX, prevY, shell.x, shell.y, truck.x, truck.y);
                 if (dist > truckHitRadius) continue;
 
-                if (!truck._oilCooldown || truck._oilCooldown <= 0) {
-                    truck._oilSpinning = true;
-                    truck._oilSpinTotal = 0;
-                    truck._oilSpinTarget = Math.PI * 2;
-                    truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
-                    truck._oilSpinSpeed = 10;
-                    truck.speed *= 0.1;
-                    truck._oilCooldown = 3.0;
-                }
-                if (truck === this.playerTruck) {
-                    this.cameras.main.shake(300, 0.012);
-                    this.showMessage('HIT!', 800);
-                }
+                this._applyShellHitEffect(truck);
 
                 this._shellExplode(shell);
                 this.cannonShells.splice(i, 1);
                 break;
             }
+        }
+    }
+
+    _updateGuidedMissiles(dt) {
+        const hitRadius = 24;
+
+        for (let i = this.guidedMissiles.length - 1; i >= 0; i--) {
+            const missile = this.guidedMissiles[i];
+            const age = (this.time.now - missile.spawnTime) / 1000;
+            if (age > missile.maxAge) {
+                this._destroyGuidedMissile(missile, false);
+                this.guidedMissiles.splice(i, 1);
+                continue;
+            }
+
+            if (!missile.target || missile.target._destroyed || missile.target.raceFinished) {
+                missile.target = this._findClosestAiTarget(missile.owner);
+                if (!missile.target) {
+                    this._destroyGuidedMissile(missile, false);
+                    this.guidedMissiles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            const desiredAngle = Math.atan2(missile.target.y - missile.y, missile.target.x - missile.x);
+            missile.angle = Phaser.Math.Angle.RotateTo(missile.angle, desiredAngle, missile.turnRate * dt);
+            missile.x += Math.cos(missile.angle) * missile.speed * dt;
+            missile.y += Math.sin(missile.angle) * missile.speed * dt;
+            missile.gfx.setPosition(missile.x, missile.y);
+            missile.gfx.rotation = missile.angle + Math.PI / 2;
+
+            const dx = missile.target.x - missile.x;
+            const dy = missile.target.y - missile.y;
+            if ((dx * dx + dy * dy) > hitRadius * hitRadius) continue;
+
+            this._applyShellHitEffect(missile.target);
+            this._destroyGuidedMissile(missile, true);
+            this.guidedMissiles.splice(i, 1);
         }
     }
 
@@ -2056,6 +2140,36 @@ class RaceScene extends Phaser.Scene {
         return { x: -dy / len, y: dx / len };
     }
 
+    _applyShellHitEffect(truck) {
+        if (!truck._oilCooldown || truck._oilCooldown <= 0) {
+            truck._oilSpinning = true;
+            truck._oilSpinTotal = 0;
+            truck._oilSpinTarget = Math.PI * 2;
+            truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
+            truck._oilSpinSpeed = 10;
+            truck.speed *= 0.1;
+            truck._oilCooldown = 3.0;
+        }
+        if (truck === this.playerTruck) {
+            this.cameras.main.shake(300, 0.012);
+            this.showMessage('HIT!', 800);
+        }
+    }
+
+    _destroyGuidedMissile(missile, explode) {
+        if (!missile.gfx || !missile.gfx.active) return;
+        if (!explode) {
+            missile.gfx.destroy();
+            return;
+        }
+        missile.gfx.clear();
+        missile.gfx.fillStyle(0xffffff, 0.95);
+        missile.gfx.fillCircle(0, 0, 10);
+        this.time.delayedCall(100, () => {
+            if (missile.gfx && missile.gfx.active) missile.gfx.destroy();
+        });
+    }
+
     _shellExplode(shell) {
         // Flash white then destroy
         shell.gfx.clear();
@@ -2098,8 +2212,8 @@ class RaceScene extends Phaser.Scene {
         const wallWidth = (this.track.wallWidth || 6) / 2 + 6 * truckScale; // detection radius scaled to truck size
 
         for (const truck of this.allTrucks) {
-            // Tanks can drive over walls.
-            if (truck.vehicleType === 'tank') continue;
+            // Tanks can drive over walls, jets fly over them.
+            if (truck.vehicleType === 'tank' || truck.vehicleType === 'jet') continue;
             // Track consecutive wall hits for oscillation damping
             if (!truck._wallHitCount) truck._wallHitCount = 0;
             if (!truck._wallHitTimer) truck._wallHitTimer = 0;
@@ -2407,6 +2521,13 @@ class RaceScene extends Phaser.Scene {
         if (!this.track.hazards || this.track.hazards.length === 0) return;
         for (const truck of this.allTrucks) {
             if (truck._destroyed) continue;
+            if (truck.vehicleType === 'jet') {
+                if (truck._holeCooldown > 0) truck._holeCooldown -= dt;
+                if (truck._bumpCooldown > 0) truck._bumpCooldown -= dt;
+                if (truck._oilCooldown > 0) truck._oilCooldown -= dt;
+                if (truck._hazardRecovery > 0) truck._hazardRecovery -= dt;
+                continue;
+            }
             for (const h of this.track.hazards) {
                 const dx = truck.x - h.x;
                 const dy = truck.y - h.y;
