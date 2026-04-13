@@ -116,6 +116,7 @@ class RaceScene extends Phaser.Scene {
         for (const t of this.allTrucks) {
             const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.72 : t.vehicleType === 'jet' ? 0.86 : t.vehicleType === 'tank' ? 1.1 : 1;
             t.setTruckScale(truckScale * vehicleScale);
+            t.setDepth(t.vehicleType === 'jet' ? 12 : 8);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
         }
@@ -2097,7 +2098,7 @@ class RaceScene extends Phaser.Scene {
             const dy = missile.target.y - missile.y;
             if ((dx * dx + dy * dy) > hitRadius * hitRadius) continue;
 
-            this._applyShellHitEffect(missile.target);
+            this._destroyByTank(missile.target);
             this._destroyGuidedMissile(missile, true);
             this.guidedMissiles.splice(i, 1);
         }
