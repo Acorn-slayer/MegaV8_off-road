@@ -12,14 +12,16 @@ It's inspired by *Super Off Road*, a classic arcade game from 1989. I built it w
 
 1. [What is This Project?](#what-is-this-project)
 2. [Game Features](#game-features)
-3. [How to Play](#how-to-play)
-4. [How the Tracks Are Made](#technical-deep-dive-track-geometry) — *for curious readers*
-5. [The Wall Problem](#the-wall-problem) — *a tricky bug we had to solve*
-6. [Hazard Physics](#hazard-physics) — *math that makes the game feel real*
-7. [Working with AI](#ai-assisted-development) — *what we learned*
-8. [Architecture Overview](#architecture-overview) — *how the code is organized*
-9. [How to Run Locally](#how-to-run-locally)
-10. [Credits](#credits)
+3. [Special Vehicles](#special-vehicles)
+4. [How to Play](#how-to-play)
+5. [Starting Grid Math](#starting-grid-math) — *how everyone lines up on the track*
+6. [How the Tracks Are Made](#technical-deep-dive-track-geometry) — *for curious readers*
+7. [The Wall Problem](#the-wall-problem) — *a tricky bug we had to solve*
+8. [Hazard Physics](#hazard-physics) — *math that makes the game feel real*
+9. [Working with AI](#ai-assisted-development) — *what we learned*
+10. [Architecture Overview](#architecture-overview) — *how the code is organized*
+11. [How to Run Locally](#how-to-run-locally)
+12. [Credits](#credits)
 
 ---
 
@@ -46,6 +48,10 @@ Here's what you can do in the game:
 - 🎮 Works on iPad (touch) and desktop (keyboard)
 - 🧱 Real-looking track walls with red and white curbs
 - 🎵 Engine sounds and background music
+- 🛒 Vehicle Shop — unlock special vehicles with money earned racing
+- 🏍️ Night Rider motorcycle — fast and nimble ($10,000)
+- 🏎 F1 Viper formula car — top speed machine ($15,000)
+- 🪖 Iron Beast battle tank — cannon, ramming, unstoppable ($20,000)
 
 ---
 
@@ -58,7 +64,86 @@ Here's what you can do in the game:
 | Steer left | ← | Left arrow |
 | Steer right | → | Right arrow |
 | Nitro boost | Space | Nitro button |
+| Fire cannon (tank) | V | — |
 | Mute music | M | — |
+| Pause / Menu | ESC | — |
+
+---
+
+## Special Vehicles
+
+> **In simple words:** After you earn enough money racing, you can visit the Vehicle Shop and buy special vehicles that work differently from normal trucks. The motorcycle is light and quick. The F1 car is crazy fast in a straight line. The tank is slow but carries a cannon and can squash anyone it drives over!
+
+The game has three types of special vehicles you can unlock:
+
+### 🏍️ Night Rider (Motorcycle — $10,000)
+A two-wheeled motorcycle that is lighter and more agile than a truck. It has higher top speed and better handling, but it's not as heavy, so it gets bumped around more. The graphics are drawn as a real motorcycle viewed from above — two wheels top and bottom, a narrow body, seat, windshield fairing, and handlebars.
+
+### 🏎 F1 Viper (Formula 1 Car — $15,000)
+Modelled after a real Formula 1 racing car. It has an aerodynamic nose cone drawn as a triangle, front and rear wings (the flat pieces that push the car down at high speed), a tiny exposed cockpit with a driver helmet, and much wider rear tyres than front tyres (important for traction in real F1). Stats: top speed 260, best acceleration in the game.
+
+### 🪖 Iron Beast (Battle Tank — $20,000)
+The tank is the most unique vehicle. It is much slower than any other car (top speed 90), but it has two special abilities:
+
+**1. Cannon** — Press **V** to fire a shell. It travels at 380 pixels/second and disappears after 500 pixels. If it hits any opponent, they spin out and nearly stop (same physics as an oil slick hazard). There's a **1.5-second cooldown** between shots so you can't just hold the button.
+
+**2. Ramming** — If the tank drives *into* another vehicle, that vehicle instantly respawns at their last checkpoint with zero speed. The tank barely slows down. This required different collision code from normal bumping.
+
+```
+    Normal truck collision:           Tank ramming:
+
+    A ──→  ←── B                      TANK ──→  ←── AI
+    both slow down a bit               AI teleports to checkpoint
+    speed *= 0.95                      AI speed = 0
+                                       tank barely changes
+```
+
+The cannon HUD shows a cooldown timer when you're reloading, and "[V] FIRE! READY" when you can shoot.
+
+---
+
+## Starting Grid Math
+
+> **In simple words:** At the start of every race, the 4 vehicles need to line up neatly before the start line — like a real race. We had to figure out the maths to make them all face the right way and be equally spaced no matter which direction the track is going.
+
+When the race begins, the 4 vehicles are arranged in a **2×2 staggered grid** behind the start line. The tricky part: tracks can face *any direction* (left, right, diagonal…). If you just offset by fixed x/y pixel amounts, the vehicles will be misaligned on different tracks.
+
+### The Solution: Forward and Perpendicular Vectors
+
+First we compute the **start heading** of the track — the angle from the start waypoint to the next waypoint:
+
+```
+    startAngle = atan2(next.y - start.y, next.x - start.x)
+    
+    forward  = (cos(angle),  sin(angle))   ← points along the track
+    perpendicular = (-sin(angle), cos(angle))  ← points across the track
+```
+
+These two vectors are **always at right angles** to each other, no matter the track's direction. Then each grid slot is placed using both:
+
+```
+    slot position = start
+                  - forward × (rowNumber × 32px)      ← behind the line
+                  + perp    × (side × 24px)            ← left or right
+```
+
+| Slot | Who | Rows back | Side |
+|------|-----|:---------:|:----:|
+| 0 | **Player** | 1 | left  |
+| 1 | AI #1 | 1 | right |
+| 2 | AI #2 | 2 | left  |
+| 3 | AI #3 | 2 | right |
+
+This gives a staggered formation that works on any track:
+
+```
+    Start line
+    ─────────────────
+         [2]  [3]      ← row 2 (further back)
+         [0]  [1]      ← row 1 (closest to start line)
+```
+
+Before this fix, we used hardcoded `x + offset` and `y + offset` values. On a horizontal track the trucks looked okay, but on a diagonal or vertical start they were scattered off to the side instead of behind the line.
 
 ---
 
@@ -402,9 +487,10 @@ index.html
 │   ├── scenes/
 │   │   ├── BootScene.js       — Title screen + name entry + load game
 │   │   ├── TrackSelectScene.js — Mode select + track cards + save
-│   │   ├── TruckSelectScene.js — Color/truck picker
+│   │   ├── TruckSelectScene.js — Color/truck picker + shop button
+│   │   ├── VehicleShopScene.js — Buy special vehicles (bike, F1, tank)
 │   │   ├── ShopScene.js       — Upgrade shop between races
-│   │   ├── RaceScene.js       — Main gameplay (~950 lines)
+│   │   ├── RaceScene.js       — Main gameplay (~1100 lines)
 │   │   └── ChampionshipResultsScene.js — Final standings
 │   └── tracks/
 │       └── TrackBuilder.js    — Turtle-graphics track generator
@@ -460,7 +546,9 @@ Open `track_editor.html` in a browser. Draw tracks with freehand or build sectio
 - Built with [Phaser 3](https://phaser.io) (v3.80.1)
 - Created by **Elliott** (Grade 5, age 10) — Science Fair 2026
 - With help from dad and an AI coding assistant (GitHub Copilot / Claude)
-
+- Special vehicles: Night Rider motorcycle, F1 Viper, Iron Beast tank
+- Starting grid alignment, cannon projectile physics, tank ramming mechanics
+P
 ## License
 
 This is a non-commercial educational project built for a science fair.

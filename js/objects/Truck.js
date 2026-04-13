@@ -1,22 +1,28 @@
 // Truck � Player vehicle. Extends BaseTruck with keyboard/touch input.
 
 class Truck extends BaseTruck {
-    constructor(scene, x, y, color = 0xff0000) {
-        super(scene, x, y, color);
+    constructor(scene, x, y, color = 0xff0000, vehicleType = 'truck') {
+        super(scene, x, y, color, vehicleType);
     }
 
     // -- Update (called each frame) -----------------------------
     update(delta, cursors, nitroKey) {
         const dt = delta / 1000;
 
-        // Steering
-        const steer = this.handling * dt;
-        if (cursors.left.isDown) {
-            this.angle -= steer;
+        // Steering — build wheel input progressively instead of snapping instantly.
+        let steerTarget = 0;
+        if (cursors.left.isDown) steerTarget -= 1;
+        if (cursors.right.isDown) steerTarget += 1;
+
+        const responseRate = 4.5;
+        const releaseRate = 6.0;
+        const steerRate = this.handling * 0.75;
+        const rate = steerTarget === 0 ? releaseRate : responseRate;
+        this.steerState = Phaser.Math.Linear(this.steerState, steerTarget, Math.min(rate * dt, 1));
+        if (Math.abs(this.steerState) < 0.001 && steerTarget === 0) {
+            this.steerState = 0;
         }
-        if (cursors.right.isDown) {
-            this.angle += steer;
-        }
+        this.angle += this.steerState * steerRate * dt;
 
         // Acceleration / braking
         if (cursors.up.isDown) {

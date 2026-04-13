@@ -26,11 +26,6 @@
       "walls": true
     },
     {
-      "type": "straight",
-      "length": 70,
-      "walls": true
-    },
-    {
       "type": "turn",
       "angle": -16,
       "radius": 66,

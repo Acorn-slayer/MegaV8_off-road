@@ -11,55 +11,136 @@ class TouchControls {
         this.down = { isDown: false };
         this.nitro = { isDown: false };
 
-        // Only show on touch devices
-        if (!scene.sys.game.device.input.touch) return;
+        const hasTouch = scene.sys.game.device.input.touch || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+        if (!hasTouch) return;
 
         this.buttons = [];
+        this._createDom();
         this.createButtons();
+        this.layout();
+        scene.scale.on('resize', this.layout, this);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            scene.scale.off('resize', this.layout, this);
+            this.destroy();
+        });
+    }
+
+    _createDom() {
+        const root = document.createElement('div');
+        root.style.cssText = [
+            'position:fixed',
+            'left:0',
+            'top:0',
+            'width:0',
+            'height:0',
+            'pointer-events:none',
+            'z-index:34'
+        ].join(';');
+        (document.getElementById('game-container') || document.body).appendChild(root);
+        this.root = root;
+    }
+
+    destroyButtons() {
+        for (const btn of this.buttons) {
+            btn.el.remove();
+        }
+        this.buttons = [];
+    }
+
+    destroy() {
+        this.destroyButtons();
+        if (this.root && this.root.parentNode) {
+            this.root.parentNode.removeChild(this.root);
+        }
+        this.root = null;
     }
 
     createButtons() {
-        const scene = this.scene;
-        const btnAlpha = 0.35;
-        const btnSize = 50;
-        const padding = 10;
+        this.destroyButtons();
 
-        // Left side: steering (left / right)
-        this.addButton(padding + btnSize / 2, 550, btnSize, '◄', btnAlpha, this.left);
-        this.addButton(padding + btnSize * 1.5 + 10, 550, btnSize, '►', btnAlpha, this.right);
-
-        // Right side: gas / brake
-        this.addButton(800 - padding - btnSize * 1.5 - 10, 550, btnSize, '▼', btnAlpha, this.down);
-        this.addButton(800 - padding - btnSize / 2, 550, btnSize, '▲', btnAlpha, this.up);
-
-        // Nitro button (center bottom)
-        this.addButton(400, 560, btnSize * 1.2, 'N₂O', btnAlpha, this.nitro);
+        this.addButton('◄', this.left, false);
+        this.addButton('►', this.right, false);
+        this.addButton('N₂O', this.nitro, true);
+        this.addButton('▼', this.down, false);
+        this.addButton('▲', this.up, false);
+        this.layout();
     }
 
-    addButton(x, y, size, label, alpha, state) {
-        const scene = this.scene;
-        const depth = 1000; // always on top
+    layout() {
+        if (!this.root) return;
 
-        // Button background
-        const bg = scene.add.graphics();
-        bg.fillStyle(0xffffff, alpha);
-        bg.fillRoundedRect(x - size / 2, y - size / 2, size, size, 8);
-        bg.setDepth(depth);
+        const rect = this.scene.game.canvas.getBoundingClientRect();
+        this.root.style.left = `${rect.left}px`;
+        this.root.style.top = `${rect.top}px`;
+        this.root.style.width = `${rect.width}px`;
+        this.root.style.height = `${rect.height}px`;
 
-        // Label
-        const txt = scene.add.text(x, y, label, {
-            fontSize: '20px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#ffffff',
-        }).setOrigin(0.5).setDepth(depth + 1);
+        const width = rect.width;
+        const height = rect.height;
+        const btnSize = Math.max(52, Math.min(92, Math.round(width * 0.07)));
+        const nitroSize = Math.round(btnSize * 1.15);
+        const gap = Math.round(btnSize * 0.48);
+        const bottomPad = Math.max(8, Math.round(height * 0.018));
+        const bottom = height - btnSize / 2 - bottomPad;
+        const totalWidth = btnSize * 4 + nitroSize + gap * 4;
+        const startX = (width - totalWidth) / 2 + btnSize / 2;
+        const centers = [
+            startX,
+            startX + btnSize + gap,
+            startX + btnSize * 2 + gap * 2 + (nitroSize - btnSize) / 2,
+            startX + btnSize * 2 + nitroSize + gap * 3,
+            startX + btnSize * 3 + nitroSize + gap * 4,
+        ];
 
-        // Interactive zone
-        const zone = scene.add.zone(x, y, size, size).setInteractive().setDepth(depth + 2);
+        this.buttons.forEach((btn, index) => {
+            const size = btn.isNitro ? nitroSize : btnSize;
+            btn.el.style.width = `${size}px`;
+            btn.el.style.height = `${size}px`;
+            btn.el.style.left = `${centers[index] - size / 2}px`;
+            btn.el.style.top = `${bottom - size / 2}px`;
+            btn.el.style.fontSize = `${Math.max(18, Math.round(size * 0.3))}px`;
+        });
+    }
 
-        zone.on('pointerdown', () => { state.isDown = true; });
-        zone.on('pointerup', () => { state.isDown = false; });
-        zone.on('pointerout', () => { state.isDown = false; });
+    addButton(label, state, isNitro) {
+        if (!this.root) return;
 
-        this.buttons.push({ bg, txt, zone });
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.textContent = label;
+        el.style.cssText = [
+            'position:absolute',
+            'border:none',
+            'border-radius:12px',
+            'background:rgba(255,255,255,0.24)',
+            'color:#ffffff',
+            'font-family:Arial, sans-serif',
+            'font-weight:700',
+            'text-shadow:0 1px 0 #000, 0 0 6px rgba(0,0,0,0.8)',
+            'box-shadow:0 0 0 1px rgba(255,255,255,0.18) inset',
+            'pointer-events:auto',
+            'touch-action:none',
+            'user-select:none',
+            '-webkit-user-select:none'
+        ].join(';');
+
+        const press = (event) => {
+            event.preventDefault();
+            state.isDown = true;
+            el.style.background = 'rgba(255,255,255,0.42)';
+        };
+        const release = (event) => {
+            if (event) event.preventDefault();
+            state.isDown = false;
+            el.style.background = 'rgba(255,255,255,0.24)';
+        };
+
+        el.addEventListener('pointerdown', press);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('pointerleave', release);
+        this.root.appendChild(el);
+
+        this.buttons.push({ el, state, isNitro });
     }
 }

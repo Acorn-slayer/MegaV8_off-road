@@ -2,8 +2,8 @@
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
     parent: 'game-container',
     backgroundColor: '#3a2a1a',
     physics: {
@@ -16,7 +16,7 @@ const config = {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    scene: [BootScene, TrackSelectScene, TruckSelectScene, RaceScene, ShopScene]
+    scene: [BootScene, TrackSelectScene, TruckSelectScene, VehicleShopScene, RaceScene, ShopScene, ChampionshipResultsScene]
 };
 
 const game = new Phaser.Game(config);

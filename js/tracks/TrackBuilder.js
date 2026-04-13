@@ -139,6 +139,7 @@ const TrackBuilder = {
             name: def.name || 'Custom Track',
             waypoints,
             trackWidth: def.trackWidth || 70,
+            zoomTargetPx: def.zoomTargetPx,
             startLineIndex: def.startLineIndex || 0,
             lapCount: def.lapCount || 3,
             bgColor:     (def.colors && def.colors.bg)     || 0x3a2a1a,
@@ -275,10 +276,12 @@ const TrackBuilder = {
         return pts[pts.length - 1];
     },
 
-    // Center and scale track to fit 800x600 with padding
-    centerTrack(track, padX, padY) {
-        padX = padX || 50;
-        padY = padY || 50;
+    // Center and scale track to fit a world area (default 3200x1800 for camera follow)
+    centerTrack(track, worldW, worldH, padX, padY) {
+        worldW = worldW || 3200;
+        worldH = worldH || 1800;
+        padX = padX || 80;
+        padY = padY || 80;
         const wps = track.waypoints;
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         for (const wp of wps) {
@@ -289,28 +292,41 @@ const TrackBuilder = {
         }
         const rangeX = maxX - minX || 1;
         const rangeY = maxY - minY || 1;
-        const scaleX = (800 - padX * 2) / rangeX;
-        const scaleY = (600 - padY * 2) / rangeY;
+        const scaleX = (worldW - padX * 2) / rangeX;
+        const scaleY = (worldH - padY * 2) / rangeY;
         const scale = Math.min(scaleX, scaleY);
         const cx = (minX + maxX) / 2;
         const cy = (minY + maxY) / 2;
+        const centerX = worldW / 2;
+        const centerY = worldH / 2;
 
         for (const wp of wps) {
-            wp[0] = Math.round((wp[0] - cx) * scale + 400);
-            wp[1] = Math.round((wp[1] - cy) * scale + 300);
+            wp[0] = Math.round((wp[0] - cx) * scale + centerX);
+            wp[1] = Math.round((wp[1] - cy) * scale + centerY);
         }
-        // Scale track width to match the coordinate scaling
+        // Scale track width and truck scale to match the coordinate scaling
         track.trackWidth = Math.round(track.trackWidth * scale);
+        // If truck scale not set, use the track scale factor; if set, scale it proportionally
+        if (!track.truckScale) {
+            track.truckScale = Math.round(scale * 100) / 100;
+        } else {
+            track.truckScale = Math.round(track.truckScale * scale * 100) / 100;
+        }
+
+        // Store world dimensions on the track for camera/rendering use
+        track.worldW = worldW;
+        track.worldH = worldH;
+
         if (track.walls) {
             for (const w of track.walls) {
-                w[0] = Math.round((w[0] - cx) * scale + 400);
-                w[1] = Math.round((w[1] - cy) * scale + 300);
-                w[2] = Math.round((w[2] - cx) * scale + 400);
-                w[3] = Math.round((w[3] - cy) * scale + 300);
+                w[0] = Math.round((w[0] - cx) * scale + centerX);
+                w[1] = Math.round((w[1] - cy) * scale + centerY);
+                w[2] = Math.round((w[2] - cx) * scale + centerX);
+                w[3] = Math.round((w[3] - cy) * scale + centerY);
                 // Update stored centerline reference too
                 if (w.length >= 6) {
-                    w[4] = Math.round((w[4] - cx) * scale + 400);
-                    w[5] = Math.round((w[5] - cy) * scale + 300);
+                    w[4] = Math.round((w[4] - cx) * scale + centerX);
+                    w[5] = Math.round((w[5] - cy) * scale + centerY);
                 }
             }
             // Wall culling removed — editor has manual eraser tool
@@ -323,8 +339,8 @@ const TrackBuilder = {
         }
         if (track.hazards) {
             for (const h of track.hazards) {
-                h.x = Math.round((h.x - cx) * scale + 400);
-                h.y = Math.round((h.y - cy) * scale + 300);
+                h.x = Math.round((h.x - cx) * scale + centerX);
+                h.y = Math.round((h.y - cy) * scale + centerY);
                 h.radius = Math.round(h.radius * scale);
             }
         }
