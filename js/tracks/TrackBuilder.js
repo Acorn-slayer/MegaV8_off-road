@@ -334,6 +334,7 @@ const TrackBuilder = {
         // Store world dimensions on the track for camera/rendering use
         track.worldW = worldW;
         track.worldH = worldH;
+        track.geometryScale = scale;
 
         if (track.walls) {
             for (const w of track.walls) {

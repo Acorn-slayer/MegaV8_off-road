@@ -307,6 +307,7 @@
                 this.drawStartLine();
 
                 this.spawnAiGrid();
+                this.applyTrackMotionScale();
 
                 this.cameras.main.setBounds(0, 0, this.track.worldW, this.track.worldH);
                 this.cameras.main.stopFollow();
@@ -345,6 +346,7 @@
 
             spawnAiGrid() {
                 const startWp = this.track.waypoints[this.track.startLineIndex];
+                const nextStartWaypoint = (this.track.startLineIndex + 1) % this.track.waypoints.length;
                 const truckScale = this.track.truckScale || 1;
                 const nextWp = this.track.waypoints[(this.track.startLineIndex + 1) % this.track.waypoints.length];
                 const startAngle = Math.atan2(nextWp[1] - startWp[1], nextWp[0] - startWp[0]);
@@ -374,6 +376,9 @@
                     ai.setDepth(8);
                     ai.aiName = cfg.name;
                     ai.angle = startAngle;
+                    ai.currentWaypoint = nextStartWaypoint;
+                    ai.totalProgress = nextStartWaypoint;
+                    ai.lastProgressMetric = nextStartWaypoint;
                     ai.nitroFuel = ai.nitroMax = 3 + GameState.perLevel.nitro * 5;
                     ai.topSpeed += GameState.perLevel.topSpeed * 5;
                     ai.acceleration += GameState.perLevel.acceleration * 5;
@@ -384,6 +389,30 @@
                 }
 
                 this.allTrucks = [...this.aiTrucks];
+            }
+
+            getTrackMotionScale() {
+                if (Number.isFinite(this.track && this.track.geometryScale) && this.track.geometryScale > 0) {
+                    return this.track.geometryScale;
+                }
+
+                const program = this.track && this.track._program;
+                const runtimeWidth = Number(this.track && this.track.trackWidth);
+                const designWidth = Number(program && program.trackWidth);
+                if (Number.isFinite(runtimeWidth) && runtimeWidth > 0 && Number.isFinite(designWidth) && designWidth > 0) {
+                    return runtimeWidth / designWidth;
+                }
+
+                return 1;
+            }
+
+            applyTrackMotionScale() {
+                const motionScale = Phaser.Math.Clamp(this.getTrackMotionScale(), 0.35, 2.8);
+                for (const ai of this.aiTrucks) {
+                    ai.topSpeed *= motionScale;
+                    ai.acceleration *= motionScale;
+                    ai.braking *= motionScale;
+                }
             }
 
             drawBackground() {
