@@ -109,7 +109,7 @@ class RaceScene extends Phaser.Scene {
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.85 : t.vehicleType === 'tank' ? 1.1 : 1;
+            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.72 : t.vehicleType === 'tank' ? 1.1 : 1;
             t.setTruckScale(truckScale * vehicleScale);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;

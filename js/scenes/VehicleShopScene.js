@@ -194,36 +194,41 @@ class VehicleShopScene extends Phaser.Scene {
             gfx.fillRect(cx - 6 * scale, cy - 10 * scale, 3 * scale, 1 * scale);
             gfx.fillRect(cx + 3 * scale, cy - 10 * scale, 3 * scale, 1 * scale);
         } else if (preset.type === 'f1') {
-            // Rear wing
-            gfx.fillStyle(0x333333, 1);
-            gfx.fillRect(cx - 7 * scale, cy + 7 * scale, 14 * scale, 2 * scale);
-            gfx.fillRect(cx - 1 * scale, cy + 5 * scale, 2 * scale, 4 * scale);
-            // Body
-            gfx.fillStyle(color, 1);
-            gfx.fillRoundedRect(cx - 4 * scale, cy - 12 * scale, 8 * scale, 24 * scale, 3 * scale);
-            // Nose cone
-            gfx.fillTriangle(cx, cy - 16 * scale, cx - 3 * scale, cy - 12 * scale, cx + 3 * scale, cy - 12 * scale);
-            // Cockpit
-            gfx.fillStyle(0x222222, 0.9);
-            gfx.fillRoundedRect(cx - 2 * scale, cy - 5 * scale, 4 * scale, 5 * scale, 2 * scale);
-            // Helmet
-            gfx.fillStyle(0xeeeeee, 1);
-            gfx.fillCircle(cx, cy - 3 * scale, 2 * scale);
-            // Front wing
             gfx.fillStyle(0x444444, 1);
-            gfx.fillRect(cx - 6 * scale, cy - 13 * scale, 12 * scale, 2 * scale);
-            // Front wheels
+            gfx.fillRect(cx - 7 * scale, cy - 15 * scale, 14 * scale, 2 * scale);
+            gfx.fillRect(cx - 8 * scale, cy - 15 * scale, 1 * scale, 4 * scale);
+            gfx.fillRect(cx + 7 * scale, cy - 15 * scale, 1 * scale, 4 * scale);
+
+            gfx.fillStyle(color, 1);
+            gfx.fillTriangle(cx, cy - 17 * scale, cx - 2 * scale, cy - 11 * scale, cx + 2 * scale, cy - 11 * scale);
+            gfx.fillRect(cx - 1 * scale, cy - 11 * scale, 2 * scale, 5 * scale);
+
             gfx.fillStyle(0x111111, 1);
-            gfx.fillRect(cx - 8 * scale, cy - 11 * scale, 3 * scale, 5 * scale);
-            gfx.fillRect(cx + 5 * scale, cy - 11 * scale, 3 * scale, 5 * scale);
-            // Rear wheels
+            gfx.fillRect(cx - 8 * scale, cy - 11 * scale, 3 * scale, 6 * scale);
+            gfx.fillRect(cx + 5 * scale, cy - 11 * scale, 3 * scale, 6 * scale);
+
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 8 * scale, 6 * scale, 18 * scale, 2 * scale);
+            gfx.fillRoundedRect(cx - 6 * scale, cy - 2 * scale, 3 * scale, 9 * scale, 1 * scale);
+            gfx.fillRoundedRect(cx + 3 * scale, cy - 2 * scale, 3 * scale, 9 * scale, 1 * scale);
+
+            gfx.fillStyle(0x1f1f1f, 0.95);
+            gfx.fillRoundedRect(cx - 2 * scale, cy - 3 * scale, 4 * scale, 6 * scale, 2 * scale);
+            gfx.fillStyle(0xf2f2f2, 1);
+            gfx.fillCircle(cx, cy - 1 * scale, 1.7 * scale);
+
+            gfx.fillStyle(color, 0.9);
+            gfx.fillRoundedRect(cx - 4 * scale, cy + 4 * scale, 8 * scale, 6 * scale, 2 * scale);
+
             gfx.fillStyle(0x111111, 1);
-            gfx.fillRect(cx - 9 * scale, cy + 2 * scale, 4 * scale, 6 * scale);
-            gfx.fillRect(cx + 5 * scale, cy + 2 * scale, 4 * scale, 6 * scale);
-            // Side pods
-            gfx.fillStyle(color, 0.8);
-            gfx.fillRect(cx - 6 * scale, cy - 3 * scale, 2 * scale, 8 * scale);
-            gfx.fillRect(cx + 4 * scale, cy - 3 * scale, 2 * scale, 8 * scale);
+            gfx.fillRect(cx - 9 * scale, cy + 3 * scale, 4 * scale, 8 * scale);
+            gfx.fillRect(cx + 5 * scale, cy + 3 * scale, 4 * scale, 8 * scale);
+
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 8 * scale, cy + 11 * scale, 16 * scale, 2 * scale);
+            gfx.fillRect(cx - 1 * scale, cy + 8 * scale, 2 * scale, 4 * scale);
+            gfx.fillStyle(0x555555, 1);
+            gfx.fillRect(cx - 3 * scale, cy + 9 * scale, 6 * scale, 2 * scale);
         } else if (preset.type === 'tank') {
             // Treads
             gfx.fillStyle(0x333333, 1);

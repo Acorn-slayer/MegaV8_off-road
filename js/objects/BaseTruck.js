@@ -126,49 +126,51 @@ class BaseTruck extends Phaser.GameObjects.Container {
     createF1Graphics(scene, color) {
         const gfx = scene.add.graphics();
 
-        // Rear wing
-        gfx.fillStyle(0x333333, 1);
-        gfx.fillRect(-7, 7, 14, 2);
-        gfx.fillRect(-1, 5, 2, 4);
-
-        // Body — narrow, elongated F1 shape
-        gfx.fillStyle(color, 1);
-        gfx.fillRoundedRect(-4, -12, 8, 24, 3);
-
-        // Nose cone (pointed)
-        gfx.fillStyle(color, 1);
-        gfx.fillTriangle(0, -16, -3, -12, 3, -12);
-
-        // Cockpit opening
-        gfx.fillStyle(0x222222, 0.9);
-        gfx.fillRoundedRect(-2, -5, 4, 5, 2);
-
-        // Driver helmet
-        gfx.fillStyle(0xeeeeee, 1);
-        gfx.fillCircle(0, -3, 2);
-
-        // Front wing
+        // Front wing and endplates
         gfx.fillStyle(0x444444, 1);
-        gfx.fillRect(-6, -13, 12, 2);
+        gfx.fillRect(-7, -15, 14, 2);
+        gfx.fillRect(-8, -15, 1, 4);
+        gfx.fillRect(7, -15, 1, 4);
+
+        // Nose and front suspension line
+        gfx.fillStyle(color, 1);
+        gfx.fillTriangle(0, -17, -2, -11, 2, -11);
+        gfx.fillRect(-1, -11, 2, 5);
 
         // Front wheels
         gfx.fillStyle(0x111111, 1);
-        gfx.fillRect(-8, -11, 3, 5);
-        gfx.fillRect(5, -11, 3, 5);
+        gfx.fillRect(-8, -11, 3, 6);
+        gfx.fillRect(5, -11, 3, 6);
 
-        // Rear wheels (wider)
-        gfx.fillStyle(0x111111, 1);
-        gfx.fillRect(-9, 2, 4, 6);
-        gfx.fillRect(5, 2, 4, 6);
+        // Main monocoque
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-3, -8, 6, 18, 2);
 
         // Side pods
-        gfx.fillStyle(color, 0.8);
-        gfx.fillRect(-6, -3, 2, 8);
-        gfx.fillRect(4, -3, 2, 8);
+        gfx.fillRoundedRect(-6, -2, 3, 9, 1);
+        gfx.fillRoundedRect(3, -2, 3, 9, 1);
 
-        // Exhaust / diffuser
+        // Cockpit and helmet
+        gfx.fillStyle(0x1f1f1f, 0.95);
+        gfx.fillRoundedRect(-2, -3, 4, 6, 2);
+        gfx.fillStyle(0xf2f2f2, 1);
+        gfx.fillCircle(0, -1, 1.7);
+
+        // Engine cover
+        gfx.fillStyle(color, 0.9);
+        gfx.fillRoundedRect(-4, 4, 8, 6, 2);
+
+        // Rear wheels
+        gfx.fillStyle(0x111111, 1);
+        gfx.fillRect(-9, 3, 4, 8);
+        gfx.fillRect(5, 3, 4, 8);
+
+        // Rear wing and diffuser
+        gfx.fillStyle(0x333333, 1);
+        gfx.fillRect(-8, 11, 16, 2);
+        gfx.fillRect(-1, 8, 2, 4);
         gfx.fillStyle(0x555555, 1);
-        gfx.fillRect(-3, 8, 6, 2);
+        gfx.fillRect(-3, 9, 6, 2);
 
         return gfx;
     }

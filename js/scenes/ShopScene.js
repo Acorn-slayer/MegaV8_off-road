@@ -161,14 +161,30 @@ class ShopScene extends Phaser.Scene {
             gfx.fillStyle(color, 1);
             gfx.fillRoundedRect(cx - 5, cy - 7, 10, 14, 3);
         } else if (type === 'f1') {
+            gfx.fillStyle(0x444444, 1);
+            gfx.fillRect(cx - 7, cy - 14, 14, 2);
+            gfx.fillRect(cx - 8, cy - 14, 1, 3);
+            gfx.fillRect(cx + 7, cy - 14, 1, 3);
             gfx.fillStyle(color, 1);
-            gfx.fillRoundedRect(cx - 4, cy - 12, 8, 24, 3);
-            gfx.fillTriangle(cx, cy - 16, cx - 3, cy - 12, cx + 3, cy - 12);
+            gfx.fillTriangle(cx, cy - 16, cx - 2, cy - 10, cx + 2, cy - 10);
+            gfx.fillRect(cx - 1, cy - 10, 2, 4);
             gfx.fillStyle(0x111111, 1);
-            gfx.fillRect(cx - 8, cy - 10, 4, 5);
-            gfx.fillRect(cx + 4, cy - 10, 4, 5);
-            gfx.fillRect(cx - 8, cy + 3, 4, 6);
-            gfx.fillRect(cx + 4, cy + 3, 4, 6);
+            gfx.fillRect(cx - 8, cy - 10, 3, 5);
+            gfx.fillRect(cx + 5, cy - 10, 3, 5);
+            gfx.fillRoundedRect(cx - 3, cy - 7, 6, 16, 2);
+            gfx.fillRect(cx - 6, cy - 1, 3, 8);
+            gfx.fillRect(cx + 3, cy - 1, 3, 8);
+            gfx.fillStyle(0x1f1f1f, 1);
+            gfx.fillRoundedRect(cx - 2, cy - 2, 4, 5, 2);
+            gfx.fillStyle(0xf2f2f2, 1);
+            gfx.fillCircle(cx, cy, 1);
+            gfx.fillStyle(color, 0.9);
+            gfx.fillRoundedRect(cx - 4, cy + 4, 8, 5, 2);
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 9, cy + 3, 4, 7);
+            gfx.fillRect(cx + 5, cy + 3, 4, 7);
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 8, cy + 10, 16, 2);
         } else if (type === 'tank') {
             gfx.fillStyle(0x333333, 1);
             gfx.fillRect(cx - 9, cy - 10, 4, 20);
