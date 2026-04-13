@@ -42,7 +42,7 @@ class TruckSelectScene extends Phaser.Scene {
             return;
         }
 
-        const cols = 3;
+        const cols = 4;
         const rows = Math.ceil(colors.length / cols);
         const cardW = 220;
         const cardH = 200;
@@ -95,23 +95,7 @@ class TruckSelectScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Draw truck preview (bigger version of the game truck)
-        const truckGfx = this.add.graphics();
-        const tw = 24, th = 40;
-        const tcx = cx, tcy = y + 65;
-
-        // Body
-        truckGfx.fillStyle(color, 1);
-        truckGfx.fillRoundedRect(tcx - tw / 2, tcy - th / 2, tw, th, 4);
-        // Windshield
-        truckGfx.fillStyle(0x88ccff, 0.7);
-        truckGfx.fillRect(tcx - tw / 2 + 3, tcy - th / 2 + 4, tw - 6, 8);
-        // Wheels
-        truckGfx.fillStyle(0x222222, 1);
-        truckGfx.fillRect(tcx - tw / 2 - 3, tcy - th / 2 + 4, 4, 10);
-        truckGfx.fillRect(tcx + tw / 2 - 1, tcy - th / 2 + 4, 4, 10);
-        truckGfx.fillRect(tcx - tw / 2 - 3, tcy + th / 2 - 14, 4, 10);
-        truckGfx.fillRect(tcx + tw / 2 - 1, tcy + th / 2 - 14, 4, 10);
+        this._drawVehiclePreview(cx, y + 65, preset, color, 1.45);
 
         // Stats bars
         const stats = [
@@ -155,5 +139,109 @@ class TruckSelectScene extends Phaser.Scene {
             GameState.playerColor = color;
             this.scene.start('RaceScene');
         });
+    }
+
+    _drawVehiclePreview(cx, cy, preset, color, scale = 1.0) {
+        const gfx = this.add.graphics();
+
+        if (preset.type === 'bike') {
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 2 * scale, cy - 14 * scale, 4 * scale, 7 * scale);
+            gfx.fillRect(cx - 2 * scale, cy + 7 * scale, 4 * scale, 7 * scale);
+            gfx.fillStyle(0x777777, 1);
+            gfx.fillRect(cx - 1 * scale, cy - 12 * scale, 2 * scale, 3 * scale);
+            gfx.fillRect(cx - 1 * scale, cy + 9 * scale, 2 * scale, 3 * scale);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 4 * scale, cy - 8 * scale, 8 * scale, 16 * scale, 3 * scale);
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 2 * scale, 6 * scale, 7 * scale, 2 * scale);
+            gfx.fillStyle(0x555555, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 10 * scale, 6 * scale, 5 * scale, 2 * scale);
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 6 * scale, cy - 10 * scale, 3 * scale, 1 * scale);
+            gfx.fillRect(cx + 3 * scale, cy - 10 * scale, 3 * scale, 1 * scale);
+        } else if (preset.type === 'f1') {
+            gfx.fillStyle(0x444444, 1);
+            gfx.fillRect(cx - 7 * scale, cy - 15 * scale, 14 * scale, 2 * scale);
+            gfx.fillRect(cx - 8 * scale, cy - 15 * scale, 1 * scale, 4 * scale);
+            gfx.fillRect(cx + 7 * scale, cy - 15 * scale, 1 * scale, 4 * scale);
+
+            gfx.fillStyle(color, 1);
+            gfx.fillTriangle(cx, cy - 17 * scale, cx - 2 * scale, cy - 11 * scale, cx + 2 * scale, cy - 11 * scale);
+            gfx.fillRect(cx - 1 * scale, cy - 11 * scale, 2 * scale, 5 * scale);
+
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 8 * scale, cy - 11 * scale, 3 * scale, 6 * scale);
+            gfx.fillRect(cx + 5 * scale, cy - 11 * scale, 3 * scale, 6 * scale);
+
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 8 * scale, 6 * scale, 18 * scale, 2 * scale);
+            gfx.fillRoundedRect(cx - 6 * scale, cy - 2 * scale, 3 * scale, 9 * scale, 1 * scale);
+            gfx.fillRoundedRect(cx + 3 * scale, cy - 2 * scale, 3 * scale, 9 * scale, 1 * scale);
+
+            gfx.fillStyle(0x1f1f1f, 0.95);
+            gfx.fillRoundedRect(cx - 2 * scale, cy - 3 * scale, 4 * scale, 6 * scale, 2 * scale);
+            gfx.fillStyle(0xf2f2f2, 1);
+            gfx.fillCircle(cx, cy - 1 * scale, 1.7 * scale);
+
+            gfx.fillStyle(color, 0.9);
+            gfx.fillRoundedRect(cx - 4 * scale, cy + 4 * scale, 8 * scale, 6 * scale, 2 * scale);
+
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 9 * scale, cy + 3 * scale, 4 * scale, 8 * scale);
+            gfx.fillRect(cx + 5 * scale, cy + 3 * scale, 4 * scale, 8 * scale);
+
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 8 * scale, cy + 11 * scale, 16 * scale, 2 * scale);
+            gfx.fillRect(cx - 1 * scale, cy + 8 * scale, 2 * scale, 4 * scale);
+            gfx.fillStyle(0x555555, 1);
+            gfx.fillRect(cx - 3 * scale, cy + 9 * scale, 6 * scale, 2 * scale);
+        } else if (preset.type === 'tank') {
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 9 * scale, cy - 11 * scale, 4 * scale, 22 * scale);
+            gfx.fillRect(cx + 5 * scale, cy - 11 * scale, 4 * scale, 22 * scale);
+            gfx.fillStyle(0x555555, 1);
+            for (let k = 0; k < 4; k++) {
+                gfx.fillRect(cx - 9 * scale, cy + (-9 + k * 5) * scale, 4 * scale, 2 * scale);
+                gfx.fillRect(cx + 5 * scale, cy + (-9 + k * 5) * scale, 4 * scale, 2 * scale);
+            }
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 5 * scale, cy - 10 * scale, 10 * scale, 20 * scale, 2);
+            gfx.fillStyle(0x000000, 0.3);
+            gfx.fillCircle(cx, cy - 1 * scale, 6 * scale);
+            gfx.fillStyle(color, 1);
+            gfx.fillCircle(cx, cy - 1 * scale, 4 * scale);
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRect(cx - 1 * scale, cy - 14 * scale, 2 * scale, 10 * scale);
+        } else if (preset.type === 'jet') {
+            gfx.fillStyle(0x2b2f39, 1);
+            gfx.fillTriangle(cx, cy - 17 * scale, cx - 2 * scale, cy - 11 * scale, cx + 2 * scale, cy - 11 * scale);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 3 * scale, cy - 11 * scale, 6 * scale, 24 * scale, 2 * scale);
+            gfx.fillTriangle(cx, cy - 18 * scale, cx - 3 * scale, cy - 11 * scale, cx + 3 * scale, cy - 11 * scale);
+            gfx.fillTriangle(cx - 12 * scale, cy - 2 * scale, cx - 3 * scale, cy - 6 * scale, cx - 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx + 12 * scale, cy - 2 * scale, cx + 3 * scale, cy - 6 * scale, cx + 3 * scale, cy + 5 * scale);
+            gfx.fillTriangle(cx - 7 * scale, cy + 11 * scale, cx - 2 * scale, cy + 6 * scale, cx - 2 * scale, cy + 15 * scale);
+            gfx.fillTriangle(cx + 7 * scale, cy + 11 * scale, cx + 2 * scale, cy + 6 * scale, cx + 2 * scale, cy + 15 * scale);
+            gfx.fillStyle(0x87d7ff, 0.95);
+            gfx.fillRoundedRect(cx - 1.5 * scale, cy - 6 * scale, 3 * scale, 8 * scale, 1.5 * scale);
+            gfx.fillStyle(0x1e232c, 1);
+            gfx.fillRect(cx - 1 * scale, cy + 11 * scale, 2 * scale, 4 * scale);
+            gfx.fillRect(cx - 2 * scale, cy + 6 * scale, 4 * scale, 2 * scale);
+        } else {
+            const tw = 26;
+            const th = 42;
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - tw / 2, cy - th / 2, tw, th, 4);
+            gfx.fillStyle(0x88ccff, 0.7);
+            gfx.fillRect(cx - tw / 2 + 3, cy - th / 2 + 4, tw - 6, 8);
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRect(cx - tw / 2 - 3, cy - th / 2 + 4, 4, 10);
+            gfx.fillRect(cx + tw / 2 - 1, cy - th / 2 + 4, 4, 10);
+            gfx.fillRect(cx - tw / 2 - 3, cy + th / 2 - 14, 4, 10);
+            gfx.fillRect(cx + tw / 2 - 1, cy + th / 2 - 14, 4, 10);
+        }
+
+        return gfx;
     }
 }

@@ -207,7 +207,7 @@ class SoundFX {
     updateEngine(speed, topSpeed, upgradeRatio, vehicleType = 'truck') {
         if (!this.engineNode || !this.engineGain) return;
         const ratio = Math.abs(speed) / topSpeed;
-        const isF1 = vehicleType === 'f1';
+        const isF1 = vehicleType === 'f1' || vehicleType === 'jet';
 
         // ── 5-speed gearbox simulation ─────────────────────────
         // Each gear covers a speed range. RPM climbs within gear, drops on shift.

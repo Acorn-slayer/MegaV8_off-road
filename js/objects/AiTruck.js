@@ -29,6 +29,14 @@ class AiTruck extends BaseTruck {
         this.overtakeTargetId = null;
         this.wallRecoveryTime = 0;
         this.wallRecoveryHeading = this.angle;
+        this.aiState = AiTruck.STATES.RACING;
+        this.aiStateTargetId = null;
+        this.recoveryCooldown = 0;
+        this.lastRecoveryReason = 'wall';
+        this.lastProgressMetric = 0;
+        this.stuckTimer = 0;
+        this.wrongWayTimer = 0;
+        this.offTrackAssistPoint = null;
 
         // AI lap tracking
         this.lapsCompleted = 0;
@@ -46,8 +54,16 @@ class AiTruck extends BaseTruck {
     update(delta, waypoints, allTrucks) {
         const dt = delta / 1000;
         const len = waypoints.length;
+        this.recoveryCooldown = Math.max(0, this.recoveryCooldown - dt);
+
+        if (this.raceFinished) {
+            this.updateFinishState(dt);
+            this.applyPhysics(dt);
+            return;
+        }
 
         if (this.wallRecoveryTime > 0) {
+            this.setAiState(this.lastRecoveryReason === 'stuck' ? AiTruck.STATES.RECOVERING_STUCK : AiTruck.STATES.RECOVERING_WALL);
             this.updateWallRecovery(dt);
             this.applyPhysics(dt);
             return;
@@ -55,7 +71,8 @@ class AiTruck extends BaseTruck {
 
         // When drifting, look further ahead to avoid oversteering
         const lookAheadWp = this.driftAmount > 0.3 ? 2 : 0;
-        const target = waypoints[(this.currentWaypoint + lookAheadWp) % len];
+        const baseTarget = waypoints[(this.currentWaypoint + lookAheadWp) % len];
+        const target = !this.onTrack ? this.getOffTrackTarget(waypoints, baseTarget) : baseTarget;
         const prevTarget = waypoints[(this.currentWaypoint + lookAheadWp - 1 + len) % len] || target;
 
         let pathDx = target[0] - prevTarget[0];
@@ -65,11 +82,6 @@ class AiTruck extends BaseTruck {
             pathDy = Math.sin(this.angle);
         }
         const pathAngle = Math.atan2(pathDy, pathDx);
-
-        // Direction to target waypoint
-        const centerDx = target[0] - this.x;
-        const centerDy = target[1] - this.y;
-        const distToWp = Math.sqrt(centerDx * centerDx + centerDy * centerDy);
 
         // Commit to a side-pass target so the AI actually drives around blockers.
         const overtake = this.getOvertakePlan(allTrucks, pathAngle, dt);
@@ -83,6 +95,16 @@ class AiTruck extends BaseTruck {
         let dx = (target[0] + normalX * lateralOffset + forwardX * forwardLead) - this.x;
         let dy = (target[1] + normalY * lateralOffset + forwardY * forwardLead) - this.y;
         let targetAngle = Math.atan2(dy, dx);
+
+        if (overtake.side < 0 && overtake.strength > 0.08) {
+            this.setAiState(AiTruck.STATES.OVERTAKING_LEFT, overtake.targetId);
+        } else if (overtake.side > 0 && overtake.strength > 0.08) {
+            this.setAiState(AiTruck.STATES.OVERTAKING_RIGHT, overtake.targetId);
+        } else if (!this.onTrack) {
+            this.setAiState(AiTruck.STATES.RECOVERING_OFFTRACK);
+        } else {
+            this.setAiState(AiTruck.STATES.RACING);
+        }
 
         // Wobble (random steering variation)
         this.wobbleTimer += dt;
@@ -105,41 +127,14 @@ class AiTruck extends BaseTruck {
             this.angle = targetAngle + this.wobbleOffset;
         }
 
-        // Advance to next waypoint when close enough
-        if (distToWp < 35) {
-            const prev = this.currentWaypoint;
-            this.currentWaypoint = (this.currentWaypoint + 1) % len;
-            this.totalProgress++;
-            // Crossed start/finish line (wrapped from last waypoint to 0)
-            if (this.currentWaypoint === 0 || (prev > this.currentWaypoint)) {
-                this.lapsCompleted++;
-            }
-        }
-
-        // Stop racing once finished
-        if (this.raceFinished) {
-            if (this._podiumTarget) {
-                // Drive toward podium position
-                const dx = this._podiumTarget.x - this.x;
-                const dy = this._podiumTarget.y - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 5) {
-                    this.angle = Math.atan2(dy, dx);
-                    this.speed = Math.min(this.topSpeed * 0.4, dist * 2);
-                } else {
-                    this.speed = 0;
-                    this.x = this._podiumTarget.x;
-                    this.y = this._podiumTarget.y;
-                }
-            } else {
-                this.speed *= 0.95;  // coast to stop (4th place)
-            }
-            this.applyPhysics(dt);
-            return;
-        }
+        this.updateWaypointProgress(waypoints);
 
         // Acceleration (always accelerating)
         let accel = this.acceleration;
+
+        if (!this.onTrack) {
+            accel *= 0.72;
+        }
 
         // Slow down when drifting — AI reacts to loss of grip
         const driftPenalty = 1.0 - this.driftAmount * 0.6;
@@ -179,6 +174,144 @@ class AiTruck extends BaseTruck {
 
         // Shared physics (friction, track detection, off-track slowdown, bounds)
         this.applyPhysics(dt);
+        this.updateStuckDetection(waypoints, dt, pathAngle);
+    }
+
+    updateWaypointProgress(waypoints) {
+        const len = waypoints.length;
+        const maxAdvancePerFrame = 3;
+
+        for (let steps = 0; steps < maxAdvancePerFrame; steps++) {
+            const segment = this.getCurrentSegmentProgress(waypoints);
+            if (!segment) return;
+
+            const trackWidth = Math.max((this.scene && this.scene.track && this.scene.track.trackWidth) || 70, 40);
+            const speedAbs = Math.abs(this.speed);
+            const lateralThreshold = Math.max(trackWidth * 0.44, 20);
+            const forwardThreshold = Math.max(trackWidth * 0.32, 16) + speedAbs * 0.12;
+            const nearNext = segment.distToNext <= forwardThreshold;
+            const passedSegment = segment.t >= 0.9 && segment.lateralDist <= lateralThreshold;
+
+            if (!nearNext && !passedSegment) {
+                return;
+            }
+
+            const prev = this.currentWaypoint;
+            this.currentWaypoint = (this.currentWaypoint + 1) % len;
+            this.totalProgress++;
+            if (this.currentWaypoint === 0 || prev > this.currentWaypoint) {
+                this.lapsCompleted++;
+            }
+        }
+    }
+
+    getCurrentSegmentProgress(waypoints) {
+        const len = waypoints.length;
+        if (len < 2) return null;
+
+        const nextIdx = ((this.currentWaypoint % len) + len) % len;
+        const prevIdx = (nextIdx - 1 + len) % len;
+        const ax = waypoints[prevIdx][0];
+        const ay = waypoints[prevIdx][1];
+        const bx = waypoints[nextIdx][0];
+        const by = waypoints[nextIdx][1];
+        const segDx = bx - ax;
+        const segDy = by - ay;
+        const segLen2 = segDx * segDx + segDy * segDy;
+        if (segLen2 === 0) {
+            return {
+                t: 1,
+                lateralDist: 0,
+                distToNext: Phaser.Math.Distance.Between(this.x, this.y, bx, by),
+            };
+        }
+
+        const rawT = ((this.x - ax) * segDx + (this.y - ay) * segDy) / segLen2;
+        const clampedT = Phaser.Math.Clamp(rawT, 0, 1);
+        const closestX = ax + segDx * clampedT;
+        const closestY = ay + segDy * clampedT;
+        const lateralDist = Phaser.Math.Distance.Between(this.x, this.y, closestX, closestY);
+        const distToNext = Phaser.Math.Distance.Between(this.x, this.y, bx, by);
+
+        return {
+            t: rawT,
+            lateralDist,
+            distToNext,
+        };
+    }
+
+    updateFinishState(dt) {
+        if (this._podiumTarget) {
+            this.setAiState(AiTruck.STATES.FINISHED_PODIUM);
+            const dx = this._podiumTarget.x - this.x;
+            const dy = this._podiumTarget.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 5) {
+                this.angle = Math.atan2(dy, dx);
+                this.speed = Math.min(this.topSpeed * 0.4, dist * 2);
+            } else {
+                this.speed = 0;
+                this.x = this._podiumTarget.x;
+                this.y = this._podiumTarget.y;
+            }
+        } else {
+            this.setAiState(AiTruck.STATES.FINISHED_COAST);
+            this.speed *= 0.95;
+        }
+    }
+
+    setAiState(nextState, targetId = null) {
+        this.aiState = nextState;
+        this.aiStateTargetId = targetId;
+    }
+
+    getOffTrackTarget(waypoints, fallbackTarget) {
+        const closest = this.getClosestCenterlinePoint(waypoints);
+        if (!closest) {
+            this.offTrackAssistPoint = null;
+            return fallbackTarget;
+        }
+
+        const nextIdx = ((closest.nextIdx % waypoints.length) + waypoints.length) % waypoints.length;
+        const nextWp = waypoints[nextIdx];
+        const forwardX = nextWp[0] - closest.x;
+        const forwardY = nextWp[1] - closest.y;
+        const forwardLen = Math.sqrt(forwardX * forwardX + forwardY * forwardY) || 1;
+        const lead = Math.min(24, forwardLen * 0.35);
+        this.offTrackAssistPoint = {
+            x: closest.x + (forwardX / forwardLen) * lead,
+            y: closest.y + (forwardY / forwardLen) * lead,
+        };
+        return this.offTrackAssistPoint;
+    }
+
+    getClosestCenterlinePoint(waypoints) {
+        if (!waypoints || waypoints.length < 2) return null;
+
+        let best = null;
+        const len = waypoints.length;
+        for (let i = 0; i < len; i++) {
+            const j = (i + 1) % len;
+            const ax = waypoints[i][0];
+            const ay = waypoints[i][1];
+            const bx = waypoints[j][0];
+            const by = waypoints[j][1];
+            const dx = bx - ax;
+            const dy = by - ay;
+            const segLen2 = dx * dx + dy * dy;
+            if (segLen2 === 0) continue;
+
+            let t = ((this.x - ax) * dx + (this.y - ay) * dy) / segLen2;
+            t = Phaser.Math.Clamp(t, 0, 1);
+            const px = ax + dx * t;
+            const py = ay + dy * t;
+            const distSq = (this.x - px) * (this.x - px) + (this.y - py) * (this.y - py);
+            if (!best || distSq < best.distSq) {
+                best = { x: px, y: py, distSq, nextIdx: j };
+            }
+        }
+
+        return best;
     }
 
     updateWallRecovery(dt) {
@@ -207,12 +340,53 @@ class AiTruck extends BaseTruck {
         }
     }
 
-    triggerWallRecovery(recoveryHeading) {
+    triggerWallRecovery(recoveryHeading, reason = 'wall') {
         this.wallRecoveryHeading = recoveryHeading;
         this.wallRecoveryTime = 0.7;
+        this.recoveryCooldown = 0.9;
+        this.lastRecoveryReason = reason;
         this.nitroBoosting = false;
         this._wallHitCount = 0;
         this._wallHitTimer = 0;
+        this.stuckTimer = 0;
+        this.wrongWayTimer = 0;
+        this.setAiState(reason === 'stuck' ? AiTruck.STATES.RECOVERING_STUCK : AiTruck.STATES.RECOVERING_WALL);
+    }
+
+    updateStuckDetection(waypoints, dt, fallbackHeading) {
+        const segment = this.getCurrentSegmentProgress(waypoints);
+        if (!segment) return;
+
+        const progressMetric = this.totalProgress + Phaser.Math.Clamp(segment.t, 0, 1);
+        const progressDelta = progressMetric - this.lastProgressMetric;
+        this.lastProgressMetric = progressMetric;
+
+        const trackWidth = Math.max((this.scene && this.scene.track && this.scene.track.trackWidth) || 70, 40);
+        const speedAbs = Math.abs(this.speed);
+        const lowSpeed = speedAbs < Math.max(18, this.topSpeed * 0.14);
+        const poorProgress = progressDelta < 0.003;
+        const farFromLine = segment.lateralDist > Math.max(trackWidth * 0.58, 24);
+        const desiredHeading = this.scene && typeof this.scene._getTruckRecoveryHeading === 'function'
+            ? this.scene._getTruckRecoveryHeading(this, 3)
+            : fallbackHeading;
+        const headingError = Math.abs(Phaser.Math.Angle.Wrap(desiredHeading - this.angle));
+        const wrongWay = headingError > Math.PI * 0.63;
+
+        if (lowSpeed && poorProgress) {
+            this.stuckTimer += dt;
+        } else {
+            this.stuckTimer = Math.max(0, this.stuckTimer - dt * 0.75);
+        }
+
+        if (wrongWay && (poorProgress || lowSpeed || farFromLine)) {
+            this.wrongWayTimer += dt;
+        } else {
+            this.wrongWayTimer = Math.max(0, this.wrongWayTimer - dt);
+        }
+
+        if (this.recoveryCooldown <= 0 && (this.stuckTimer > 1.35 || this.wrongWayTimer > 0.95)) {
+            this.triggerWallRecovery(desiredHeading, 'stuck');
+        }
     }
 
     // -- Overtaking logic ---------------------------------------
@@ -261,7 +435,7 @@ class AiTruck extends BaseTruck {
             const chosenCost = Math.min(leftCost, rightCost);
 
             bestCandidate = {
-                id: other._aiId || other.name || `${other.x}:${other.y}`,
+                id: other.truckId,
                 side: chosenSide,
                 strength: Phaser.Math.Clamp(score - chosenCost * 0.32, 0, 1),
                 blockedBySlower,
@@ -281,6 +455,7 @@ class AiTruck extends BaseTruck {
                 side: this.overtakeSide,
                 strength: this.overtakeStrength,
                 blockedBySlower: bestCandidate.blockedBySlower,
+                targetId: this.overtakeTargetId,
             };
         }
 
@@ -298,6 +473,7 @@ class AiTruck extends BaseTruck {
             side: this.overtakeSide,
             strength: this.overtakeStrength,
             blockedBySlower: false,
+            targetId: this.overtakeTargetId,
         };
     }
 
@@ -327,3 +503,14 @@ class AiTruck extends BaseTruck {
         return cost;
     }
 }
+
+AiTruck.STATES = {
+    RACING: 'racing',
+    OVERTAKING_LEFT: 'overtaking_left',
+    OVERTAKING_RIGHT: 'overtaking_right',
+    RECOVERING_OFFTRACK: 'recovering_offtrack',
+    RECOVERING_WALL: 'recovering_wall',
+    RECOVERING_STUCK: 'recovering_stuck',
+    FINISHED_PODIUM: 'finished_podium',
+    FINISHED_COAST: 'finished_coast',
+};

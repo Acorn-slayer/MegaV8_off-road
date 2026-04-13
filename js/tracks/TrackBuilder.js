@@ -283,12 +283,30 @@ const TrackBuilder = {
         padX = padX || 80;
         padY = padY || 80;
         const wps = track.waypoints;
+        const baseTrackWidth = Math.max(track.trackWidth || 70, 1);
+        const halfWidth = baseTrackWidth / 2;
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         for (const wp of wps) {
-            minX = Math.min(minX, wp[0]);
-            maxX = Math.max(maxX, wp[0]);
-            minY = Math.min(minY, wp[1]);
-            maxY = Math.max(maxY, wp[1]);
+            minX = Math.min(minX, wp[0] - halfWidth);
+            maxX = Math.max(maxX, wp[0] + halfWidth);
+            minY = Math.min(minY, wp[1] - halfWidth);
+            maxY = Math.max(maxY, wp[1] + halfWidth);
+        }
+        if (track.hazards) {
+            for (const hazard of track.hazards) {
+                minX = Math.min(minX, hazard.x - hazard.radius);
+                maxX = Math.max(maxX, hazard.x + hazard.radius);
+                minY = Math.min(minY, hazard.y - hazard.radius);
+                maxY = Math.max(maxY, hazard.y + hazard.radius);
+            }
+        }
+        if (track.walls && track.walls.length) {
+            for (const wall of track.walls) {
+                minX = Math.min(minX, wall[0], wall[2]);
+                maxX = Math.max(maxX, wall[0], wall[2]);
+                minY = Math.min(minY, wall[1], wall[3]);
+                maxY = Math.max(maxY, wall[1], wall[3]);
+            }
         }
         const rangeX = maxX - minX || 1;
         const rangeY = maxY - minY || 1;
@@ -316,6 +334,7 @@ const TrackBuilder = {
         // Store world dimensions on the track for camera/rendering use
         track.worldW = worldW;
         track.worldH = worldH;
+        track.geometryScale = scale;
 
         if (track.walls) {
             for (const w of track.walls) {

@@ -22,6 +22,8 @@ class RaceScene extends Phaser.Scene {
 
         // ── Player truck ────────────────────────────────────────
         const startWp = this.track.waypoints[this.track.startLineIndex];
+        const waypointCount = this.track.waypoints.length;
+        const nextStartWaypoint = (this.track.startLineIndex + 1) % waypointCount;
         const truckScale = this.track.truckScale || 1;
 
         // Compute start heading and grid vectors before placing any truck
@@ -97,6 +99,9 @@ class RaceScene extends Phaser.Scene {
             ai.acceleration *= aiPenalty;
             ai.handling *= aiPenalty;
             ai.angle = startAngle;
+            ai.currentWaypoint = nextStartWaypoint;
+            ai.totalProgress = nextStartWaypoint;
+            ai.lastProgressMetric = nextStartWaypoint;
             ai.raceMoney = 0;
             this.aiTrucks.push(ai);
         }
@@ -109,11 +114,13 @@ class RaceScene extends Phaser.Scene {
 
         // Apply truck scale from track (if set)
         for (const t of this.allTrucks) {
-            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.85 : t.vehicleType === 'tank' ? 1.1 : 1;
+            const vehicleScale = t.vehicleType === 'bike' ? 0.5 : t.vehicleType === 'f1' ? 0.72 : t.vehicleType === 'jet' ? 0.86 : t.vehicleType === 'tank' ? 1.1 : 1;
             t.setTruckScale(truckScale * vehicleScale);
+            t.setDepth(t.vehicleType === 'jet' ? 12 : 8);
             // Sync visual rotation to match the assigned heading
             t.truckGraphics.rotation = t.angle + Math.PI / 2;
         }
+        this._applyTrackMotionScale();
 
         // Freeze trucks until countdown finishes
         this._countdownActive = true;
@@ -148,8 +155,8 @@ class RaceScene extends Phaser.Scene {
         this.bestLapBonus = 100;  // $ bonus for setting best lap
         this.raceFinished = false;
         this.money = 0;
-        this.lastWaypointIndex = 0;       // track progress around the loop
-        this.expectedWaypoint = 1;        // next waypoint we expect (forward only)
+        this.lastWaypointIndex = this.track.startLineIndex; // track progress around the loop
+        this.expectedWaypoint = nextStartWaypoint;          // next waypoint we expect (forward only)
         this.waypointsHit = new Set();    // which waypoints were passed this lap
         this.canCrossFinish = false;      // prevent instant lap on start
         this.offTrackTimer = 0;           // seconds spent off-track or going backward
@@ -157,6 +164,7 @@ class RaceScene extends Phaser.Scene {
         this.goingWrongWay = false;        // true when player drives backward
         this._podiumNextSlot = 0;          // next podium position to assign (0=1st, 1=2nd, 2=3rd)
         this.cannonShells = [];             // active cannon shells (tank weapon)
+        this.guidedMissiles = [];           // active homing missiles (jet weapon)
 
         // ── Coins & Nitro Pickups ───────────────────────────────
         this.pickups = [];
@@ -519,6 +527,30 @@ class RaceScene extends Phaser.Scene {
         const perTrack = Number(program && program.zoomTargetPx);
         if (Number.isFinite(perTrack) && perTrack > 0) return perTrack;
         return 100;
+    }
+
+    _getTrackMotionScale() {
+        if (Number.isFinite(this.track && this.track.geometryScale) && this.track.geometryScale > 0) {
+            return this.track.geometryScale;
+        }
+
+        const program = this.track && this.track._program;
+        const runtimeWidth = Number(this.track && this.track.trackWidth);
+        const designWidth = Number(program && program.trackWidth);
+        if (Number.isFinite(runtimeWidth) && runtimeWidth > 0 && Number.isFinite(designWidth) && designWidth > 0) {
+            return runtimeWidth / designWidth;
+        }
+
+        return 1;
+    }
+
+    _applyTrackMotionScale() {
+        const motionScale = Phaser.Math.Clamp(this._getTrackMotionScale(), 0.35, 2.8);
+        for (const truck of this.allTrucks) {
+            truck.topSpeed *= motionScale;
+            truck.acceleration *= motionScale;
+            truck.braking *= motionScale;
+        }
     }
 
     _getMinimumCameraZoom(worldW, worldH) {
@@ -1010,9 +1042,11 @@ class RaceScene extends Phaser.Scene {
             }
         }
 
-        // V → tank cannon fire
+        // V → tank cannon / jet missile
         if (this.playerTruck.vehicleType === 'tank' && Phaser.Input.Keyboard.JustDown(this.vKey)) {
             this._fireCannonShell(this.playerTruck);
+        } else if (this.playerTruck.vehicleType === 'jet' && Phaser.Input.Keyboard.JustDown(this.vKey)) {
+            this._fireGuidedMissile(this.playerTruck);
         }
 
         const dt = delta / 1000;
@@ -1181,6 +1215,8 @@ class RaceScene extends Phaser.Scene {
             this._setDomText('position', this.positionText.text);
             this._setDomText('controls', this.playerTruck.vehicleType === 'tank'
                 ? 'ARROWS DRIVE  |  SPACE BOOST  |  V FIRE  |  ESC MENU'
+                : this.playerTruck.vehicleType === 'jet'
+                ? 'ARROWS FLY  |  SPACE BOOST  |  V MISSILE  |  ESC MENU'
                 : 'ARROWS DRIVE  |  SPACE BOOST  |  ESC MENU');
         }
 
@@ -1189,6 +1225,7 @@ class RaceScene extends Phaser.Scene {
 
         // ── Cannon shells (tank weapon) ─────────────────────────
         this._updateCannonShells(dt);
+        this._updateGuidedMissiles(dt);
 
         // ── Dust particles behind trucks ───────────────────────
         for (const { truck, particles } of this.dustEmitters) {
@@ -1429,7 +1466,7 @@ class RaceScene extends Phaser.Scene {
         // Reset for next lap
         this.lapTime = 0;
         this.waypointsHit.clear();
-        this.expectedWaypoint = 1;
+        this.expectedWaypoint = (this.track.startLineIndex + 1) % this.track.waypoints.length;
         this.canCrossFinish = false;
 
         // Check if race is over
@@ -1823,6 +1860,7 @@ class RaceScene extends Phaser.Scene {
                 const a = trucks[i];
                 const b = trucks[j];
                 if (a._destroyed || b._destroyed) continue;
+                if (a.vehicleType === 'jet' || b.vehicleType === 'jet') continue;
                 const dx = b.x - a.x;
                 const dy = b.y - a.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1890,7 +1928,7 @@ class RaceScene extends Phaser.Scene {
         const sx = truck.x + Math.cos(truck.angle) * offsetDist;
         const sy = truck.y + Math.sin(truck.angle) * offsetDist;
 
-        const SHELL_SPEED = 380;
+        const SHELL_SPEED = 380 * this._getTrackMotionScale();
 
         // Draw a yellow cannonball with inner highlight
         const gfx = this.add.graphics();
@@ -1910,6 +1948,58 @@ class RaceScene extends Phaser.Scene {
             gracePeriod: 0.4, // seconds before owner can be hit
             gfx,
             owner: truck,
+        });
+    }
+
+    _findClosestAiTarget(fromTruck) {
+        let bestTarget = null;
+        let bestDistSq = Infinity;
+        for (const ai of this.aiTrucks) {
+            if (ai._destroyed || ai.raceFinished) continue;
+            const dx = ai.x - fromTruck.x;
+            const dy = ai.y - fromTruck.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestTarget = ai;
+            }
+        }
+        return bestTarget;
+    }
+
+    _fireGuidedMissile(truck) {
+        const now = this.time.now;
+        if (truck._lastMissileShot && now - truck._lastMissileShot < 1100) return;
+
+        const target = this._findClosestAiTarget(truck);
+        if (!target) return;
+
+        truck._lastMissileShot = now;
+
+        const offsetDist = 24 * (this.track.truckScale || 1);
+        const sx = truck.x + Math.cos(truck.angle) * offsetDist;
+        const sy = truck.y + Math.sin(truck.angle) * offsetDist;
+        const speed = 350 * this._getTrackMotionScale();
+        const missileRadius = Math.max(2.5, 3.5 * (this.track.truckScale || 1));
+
+        const gfx = this.add.graphics();
+        gfx.fillStyle(0xff7a18, 0.95);
+        gfx.fillCircle(0, 0, missileRadius);
+        gfx.fillStyle(0xffd27a, 0.95);
+        gfx.fillCircle(-missileRadius * 0.28, -missileRadius * 0.28, missileRadius * 0.42);
+        gfx.setPosition(sx, sy).setDepth(210);
+
+        this.guidedMissiles.push({
+            x: sx,
+            y: sy,
+            speed,
+            angle: truck.angle,
+            turnRate: 5.2,
+            spawnTime: now,
+            maxAge: 4.5,
+            gfx,
+            owner: truck,
+            target,
         });
     }
 
@@ -1962,29 +2052,55 @@ class RaceScene extends Phaser.Scene {
             if (bounced) continue;
 
             for (const truck of this.allTrucks) {
+                if (truck._destroyed || truck.raceFinished) continue;
                 if (truck === shell.owner && age < shell.gracePeriod) continue;
 
                 const dist = this._segmentPointDistance(prevX, prevY, shell.x, shell.y, truck.x, truck.y);
                 if (dist > truckHitRadius) continue;
 
-                if (!truck._oilCooldown || truck._oilCooldown <= 0) {
-                    truck._oilSpinning = true;
-                    truck._oilSpinTotal = 0;
-                    truck._oilSpinTarget = Math.PI * 2;
-                    truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
-                    truck._oilSpinSpeed = 10;
-                    truck.speed *= 0.1;
-                    truck._oilCooldown = 3.0;
-                }
-                if (truck === this.playerTruck) {
-                    this.cameras.main.shake(300, 0.012);
-                    this.showMessage('HIT!', 800);
-                }
-
-                this._shellExplode(shell);
+                this._destroyByTank(truck);
+                if (shell.gfx && shell.gfx.active) shell.gfx.destroy();
                 this.cannonShells.splice(i, 1);
                 break;
             }
+        }
+    }
+
+    _updateGuidedMissiles(dt) {
+        const hitRadius = 24;
+
+        for (let i = this.guidedMissiles.length - 1; i >= 0; i--) {
+            const missile = this.guidedMissiles[i];
+            const age = (this.time.now - missile.spawnTime) / 1000;
+            if (age > missile.maxAge) {
+                this._destroyGuidedMissile(missile, false);
+                this.guidedMissiles.splice(i, 1);
+                continue;
+            }
+
+            if (!missile.target || missile.target._destroyed || missile.target.raceFinished) {
+                missile.target = this._findClosestAiTarget(missile.owner);
+                if (!missile.target) {
+                    this._destroyGuidedMissile(missile, false);
+                    this.guidedMissiles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            const desiredAngle = Math.atan2(missile.target.y - missile.y, missile.target.x - missile.x);
+            missile.angle = Phaser.Math.Angle.RotateTo(missile.angle, desiredAngle, missile.turnRate * dt);
+            missile.x += Math.cos(missile.angle) * missile.speed * dt;
+            missile.y += Math.sin(missile.angle) * missile.speed * dt;
+            missile.gfx.setPosition(missile.x, missile.y);
+            missile.gfx.rotation = missile.angle + Math.PI / 2;
+
+            const dx = missile.target.x - missile.x;
+            const dy = missile.target.y - missile.y;
+            if ((dx * dx + dy * dy) > hitRadius * hitRadius) continue;
+
+            this._destroyByTank(missile.target);
+            this._destroyGuidedMissile(missile, true);
+            this.guidedMissiles.splice(i, 1);
         }
     }
 
@@ -2056,6 +2172,48 @@ class RaceScene extends Phaser.Scene {
         return { x: -dy / len, y: dx / len };
     }
 
+    _chooseWallTangentAngle(ax, ay, bx, by, referenceHeading) {
+        const wallAngle = Math.atan2(by - ay, bx - ax);
+        const altAngle = wallAngle + Math.PI;
+        if (!Number.isFinite(referenceHeading)) {
+            return wallAngle;
+        }
+
+        const wallDelta = Math.abs(Phaser.Math.Angle.Wrap(wallAngle - referenceHeading));
+        const altDelta = Math.abs(Phaser.Math.Angle.Wrap(altAngle - referenceHeading));
+        return altDelta < wallDelta ? altAngle : wallAngle;
+    }
+
+    _applyShellHitEffect(truck) {
+        if (!truck._oilCooldown || truck._oilCooldown <= 0) {
+            truck._oilSpinning = true;
+            truck._oilSpinTotal = 0;
+            truck._oilSpinTarget = Math.PI * 2;
+            truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
+            truck._oilSpinSpeed = 10;
+            truck.speed *= 0.1;
+            truck._oilCooldown = 3.0;
+        }
+        if (truck === this.playerTruck) {
+            this.cameras.main.shake(300, 0.012);
+            this.showMessage('HIT!', 800);
+        }
+    }
+
+    _destroyGuidedMissile(missile, explode) {
+        if (!missile.gfx || !missile.gfx.active) return;
+        if (!explode) {
+            missile.gfx.destroy();
+            return;
+        }
+        missile.gfx.clear();
+        missile.gfx.fillStyle(0xffffff, 0.95);
+        missile.gfx.fillCircle(0, 0, 10);
+        this.time.delayedCall(100, () => {
+            if (missile.gfx && missile.gfx.active) missile.gfx.destroy();
+        });
+    }
+
     _shellExplode(shell) {
         // Flash white then destroy
         shell.gfx.clear();
@@ -2098,8 +2256,8 @@ class RaceScene extends Phaser.Scene {
         const wallWidth = (this.track.wallWidth || 6) / 2 + 6 * truckScale; // detection radius scaled to truck size
 
         for (const truck of this.allTrucks) {
-            // Tanks can drive over walls.
-            if (truck.vehicleType === 'tank') continue;
+            // Tanks can drive over walls, jets fly over them.
+            if (truck.vehicleType === 'tank' || truck.vehicleType === 'jet') continue;
             // Track consecutive wall hits for oscillation damping
             if (!truck._wallHitCount) truck._wallHitCount = 0;
             if (!truck._wallHitTimer) truck._wallHitTimer = 0;
@@ -2140,16 +2298,14 @@ class RaceScene extends Phaser.Scene {
                         // Very gentle speed loss — walls guide, not punish
                         const dampFactor = truck._wallHitCount >= 3 ? 0.8 : 0.9;
                         truck.speed *= dampFactor;
-                        // Blend truck angle toward wall tangent (don't snap)
-                        const wallAngle = Math.atan2(wy, wx);
-                        // Pick the tangent direction closest to current heading
-                        let targetAngle = wallAngle;
-                        const alt = wallAngle + Math.PI;
-                        if (Math.abs(Phaser.Math.Angle.Wrap(alt - truck.angle)) < Math.abs(Phaser.Math.Angle.Wrap(wallAngle - truck.angle))) {
-                            targetAngle = alt;
-                        }
-                        // Blend 40% toward wall tangent — gentle nudge
-                        truck.angle = Phaser.Math.Angle.Wrap(truck.angle + Phaser.Math.Angle.Wrap(targetAngle - truck.angle) * 0.4);
+                        const referenceHeading = truck !== this.playerTruck && typeof truck.triggerWallRecovery === 'function'
+                            ? this._getTruckRecoveryHeading(truck, 3)
+                            : truck.angle;
+                        const targetAngle = this._chooseWallTangentAngle(w[0], w[1], w[2], w[3], referenceHeading);
+                        const steerBlend = truck !== this.playerTruck ? 0.58 : 0.4;
+                        truck.angle = Phaser.Math.Angle.Wrap(
+                            truck.angle + Phaser.Math.Angle.Wrap(targetAngle - truck.angle) * steerBlend
+                        );
                     }
 
                     hitWall = true;
@@ -2407,6 +2563,13 @@ class RaceScene extends Phaser.Scene {
         if (!this.track.hazards || this.track.hazards.length === 0) return;
         for (const truck of this.allTrucks) {
             if (truck._destroyed) continue;
+            if (truck.vehicleType === 'jet') {
+                if (truck._holeCooldown > 0) truck._holeCooldown -= dt;
+                if (truck._bumpCooldown > 0) truck._bumpCooldown -= dt;
+                if (truck._oilCooldown > 0) truck._oilCooldown -= dt;
+                if (truck._hazardRecovery > 0) truck._hazardRecovery -= dt;
+                continue;
+            }
             for (const h of this.track.hazards) {
                 const dx = truck.x - h.x;
                 const dy = truck.y - h.y;
