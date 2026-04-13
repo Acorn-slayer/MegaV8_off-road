@@ -1,4 +1,4 @@
-﻿// VehicleShopScene ΓÇö Browse and choose vehicles in a dedicated shop
+﻿// VehicleShopScene — Buy vehicles ($5 000 each). Shows all vehicles in a grid.
 
 class VehicleShopScene extends Phaser.Scene {
     constructor() {
@@ -8,145 +8,142 @@ class VehicleShopScene extends Phaser.Scene {
     create() {
         this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 1280, 720);
 
-        this.add.text(640, 40, 'VEHICLE SHOP', {
-            fontSize: '32px',
-            fontFamily: "'Press Start 2P', cursive",
-            color: '#ffcc00',
-            stroke: '#000000',
-            strokeThickness: 6
+        this.add.text(640, 22, 'VEHICLE SHOP', {
+            fontSize: '26px', fontFamily: "'Press Start 2P', cursive",
+            color: '#ffcc00', stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
-        this.add.text(640, 72, 'Choose your ride before you race', {
-            fontSize: '12px',
-            fontFamily: "'Press Start 2P', cursive",
-            color: '#cccccc'
-        }).setOrigin(0.5);
-
-        this.add.text(1260, 15, `$${GameState.money}`, {
-            fontSize: '14px',
-            fontFamily: "'Press Start 2P', cursive",
-            color: '#00ff88',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(1, 0);
-
-        // Collect all shop-only vehicles
-        const shopItems = [];
-        for (const [colorKey, preset] of Object.entries(GameState.truckPresets)) {
-            if (preset.shopOnly) {
-                shopItems.push({ color: Number(colorKey), preset, owned: GameState.isVehiclePurchased(Number(colorKey)) });
-            }
-        }
-
-        const cardW = 360;
-        const cardH = 280;
-        const gap = 30;
-        const totalW = shopItems.length * cardW + (shopItems.length - 1) * gap;
-        const startX = (1280 - totalW) / 2 + cardW / 2;
-        const cy = 280;
-
-        for (let i = 0; i < shopItems.length; i++) {
-            const item = shopItems[i];
-            this._drawVehicleCard(item, startX + i * (cardW + gap), cy, cardW, cardH);
-        }
-
-        this.add.text(640, 700, 'ESC = Back', {
-            fontSize: '10px',
-            fontFamily: "'Press Start 2P', cursive",
-            color: '#666666'
-        }).setOrigin(0.5);
-
-        this.input.keyboard.once('keydown-ESC', () => {
-            this.scene.start(GameState.previousScene || 'TrackSelectScene');
-        });
-    }
-
-    _drawVehicleCard(item, cx, cy, w, h) {
-        const { color, preset, owned = false } = item;
-        const gfx = this.add.graphics();
-        gfx.fillStyle(0x2a2a4e, 0.9);
-        gfx.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 12);
-
-        this.add.text(cx, cy - h / 2 + 24, preset.name, {
-            fontSize: '12px',
-            fontFamily: "'Press Start 2P', cursive",
-            color: '#ffffff'
-        }).setOrigin(0.5);
-
-        const previewY = cy - 14;
-        this._drawVehiclePreview(cx, previewY, preset, color);
-
-        const stats = [
-            { label: 'SPD', value: preset.topSpeed, max: 240 },
-            { label: 'ACC', value: preset.acceleration, max: 180 },
-            { label: 'HND', value: preset.handling, max: 4.0 },
-            { label: 'NOS', value: preset.nitro, max: 8 },
-        ];
-        let statX = cx - w / 2 + 20;
-        for (const stat of stats) {
-            const pct = Math.min(stat.value / stat.max, 1);
-            const barW = 140;
-            this.add.text(statX, cy + 20, stat.label, {
-                fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#cccccc'
-            });
-            const bar = this.add.graphics();
-            bar.fillStyle(0x444444, 1);
-            bar.fillRoundedRect(statX + 28, cy + 22, barW, 8, 4);
-            bar.fillStyle(color, 1);
-            bar.fillRoundedRect(statX + 28, cy + 22, barW * pct, 8, 4);
-            statX += 150;
-        }
-
-        const descText = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'Formula 1 Car' : preset.type === 'tank' ? 'Battle Tank' : 'Truck';
-        this.add.text(cx, cy + 52, descText, {
+        this.add.text(640, 52, 'Each vehicle costs $5 000. You start with $5 000 — buy your first one!', {
             fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
         }).setOrigin(0.5);
 
-        if (!owned) {
-            this.add.text(cx, cy + 72, `PRICE: $${preset.price}`, {
-                fontSize: '14px', fontFamily: "'Press Start 2P', cursive",
-                color: '#00ff88'
-            }).setOrigin(0.5);
-        } else {
-            this.add.text(cx, cy + 72, 'OWNED', {
-                fontSize: '16px', fontFamily: "'Press Start 2P', cursive",
-                color: '#88ff88'
-            }).setOrigin(0.5);
+        this.moneyText = this.add.text(1260, 12, `💰 $${GameState.money}`, {
+            fontSize: '14px', fontFamily: "'Press Start 2P', cursive",
+            color: '#00ff88', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(1, 0);
+
+        // All vehicles in a 3-column grid
+        const allItems = Object.entries(GameState.truckPresets).map(([key, preset]) => ({
+            color: Number(key), preset, owned: GameState.isVehicleUnlocked(Number(key))
+        }));
+
+        const cols = 3;
+        const cardW = 235, cardH = 195, gapX = 18, gapY = 14;
+        const totalW = cols * cardW + (cols - 1) * gapX;
+        const startX = (1280 - totalW) / 2;
+        const startY = 70;
+
+        for (let i = 0; i < allItems.length; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = startX + col * (cardW + gapX);
+            const y = startY + row * (cardH + gapY);
+            this._drawVehicleCard(allItems[i], x, y, cardW, cardH);
         }
 
-        const zone = this.add.zone(cx, cy, w, h).setInteractive({ useHandCursor: true });
-        zone.on('pointerover', () => {
-            gfx.clear();
-            gfx.fillStyle(0x3a3a6e, 0.95);
-            gfx.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 12);
-            gfx.lineStyle(2, 0xffcc00, 1);
-            gfx.strokeRoundedRect(cx - w / 2, cy - h / 2, w, h, 12);
-        });
-        zone.on('pointerout', () => {
-            gfx.clear();
-            gfx.fillStyle(0x2a2a4e, 0.9);
-            gfx.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 12);
-        });
-        zone.on('pointerdown', () => {
-            if (!owned && preset.price && GameState.purchaseVehicle(color, preset.price)) {
-                this.scene.restart();
-                return;
-            }
+        this.add.text(640, 706, 'ESC = Back', {
+            fontSize: '9px', fontFamily: "'Press Start 2P', cursive", color: '#555555'
+        }).setOrigin(0.5);
 
-            if (!GameState.isVehicleUnlocked(color)) return;
-            GameState.playerColor = color;
-            const next = GameState.previousScene || 'TrackSelectScene';
-            if (next === 'TrackSelectScene' && GameState.selectedTrack) {
-                this.scene.start('RaceScene');
-            } else {
-                this.scene.start(next);
-            }
+        this.input.keyboard.on('keydown-ESC', () => {
+            this.scene.start(GameState.previousScene || 'ShopScene');
         });
     }
 
-    _drawVehiclePreview(cx, cy, preset, color) {
+    // x,y = top-left corner of the card (not center)
+    _drawVehicleCard(item, x, y, w, h) {
+        const { color, preset, owned = false } = item;
+        const cx = x + w / 2;
+        const canAfford = GameState.money >= (preset.price || 5000);
+
+        const bg = this.add.graphics();
+        const bgFill = owned ? 0x1a3a1a : (canAfford ? 0x2a2a4e : 0x2a1a1a);
+        bg.fillStyle(bgFill, 0.95);
+        bg.fillRoundedRect(x, y, w, h, 8);
+        if (owned) {
+            bg.lineStyle(2, 0x00ff88, 1);
+            bg.strokeRoundedRect(x, y, w, h, 8);
+        }
+
+        // Name
+        this.add.text(cx, y + 14, preset.name, {
+            fontSize: '10px', fontFamily: "'Press Start 2P', cursive", color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // Mini preview (scale 1.6)
+        this._drawVehiclePreview(cx, y + 58, preset, color, 1.6);
+
+        // Stat bars (compact — 2 rows of 2)
+        const statDefs = [
+            { label: 'SPD', value: preset.topSpeed, max: 260 },
+            { label: 'ACC', value: preset.acceleration, max: 180 },
+            { label: 'HND', value: preset.handling, max: 4.5 },
+            { label: 'NOS', value: preset.nitro, max: 8 },
+        ];
+        const barW = 78, barH = 7;
+        for (let si = 0; si < 4; si++) {
+            const s = statDefs[si];
+            const col = si % 2, row = Math.floor(si / 2);
+            const bx = x + 10 + col * (w / 2);
+            const by = y + 102 + row * 20;
+            this.add.text(bx, by, s.label, {
+                fontSize: '8px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
+            });
+            const fillG = this.add.graphics();
+            fillG.fillStyle(0x444444, 1);
+            fillG.fillRoundedRect(bx + 24, by + 1, barW, barH, 3);
+            fillG.fillStyle(color || 0x888888, 1);
+            fillG.fillRoundedRect(bx + 24, by + 1, barW * Math.min(s.value / s.max, 1), barH, 3);
+        }
+
+        // Type label
+        const typeLabel = preset.type === 'bike' ? 'Motorcycle' : preset.type === 'f1' ? 'F1 Car' : preset.type === 'tank' ? 'Battle Tank' : 'Truck';
+        this.add.text(cx, y + 148, typeLabel, {
+            fontSize: '9px', fontFamily: 'Arial, sans-serif', color: '#888888'
+        }).setOrigin(0.5);
+
+        // Price / owned badge
+        if (owned) {
+            this.add.text(cx, y + h - 18, '✔ OWNED', {
+                fontSize: '10px', fontFamily: "'Press Start 2P', cursive", color: '#00ff88'
+            }).setOrigin(0.5);
+        } else {
+            const priceColor = canAfford ? '#00ff88' : '#ff6666';
+            this.add.text(cx, y + h - 18, `$${(preset.price || 5000).toLocaleString()}`, {
+                fontSize: '11px', fontFamily: "'Press Start 2P', cursive", color: priceColor
+            }).setOrigin(0.5);
+        }
+
+        const zone = this.add.zone(cx, y + h / 2, w, h).setInteractive({ useHandCursor: true });
+        zone.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(owned ? 0x2a5a2a : (canAfford ? 0x3a3a6e : 0x3a1a1a), 0.95);
+            bg.fillRoundedRect(x, y, w, h, 8);
+            bg.lineStyle(2, owned ? 0x00ff88 : 0xffcc00, 1);
+            bg.strokeRoundedRect(x, y, w, h, 8);
+        });
+        zone.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(bgFill, 0.95);
+            bg.fillRoundedRect(x, y, w, h, 8);
+            if (owned) { bg.lineStyle(2, 0x00ff88, 1); bg.strokeRoundedRect(x, y, w, h, 8); }
+        });
+        zone.on('pointerdown', () => {
+            if (!owned) {
+                if (!canAfford) return;
+                if (GameState.purchaseVehicle(color, preset.price || 5000)) {
+                    this.scene.restart();
+                }
+                return;
+            }
+            // Already owned: just select it and return
+            GameState.playerColor = color;
+            this.scene.start(GameState.previousScene || 'ShopScene');
+        });
+    }
+
+    _drawVehiclePreview(cx, cy, preset, color, scale = 2.0) {
         const gfx = this.add.graphics();
-        const scale = 2.5; // larger preview in shop
 
         if (preset.type === 'bike') {
             // Wheels

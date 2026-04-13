@@ -210,14 +210,14 @@ class BaseTruck extends Phaser.GameObjects.Container {
 
     // ── Shared physics step ────────────────────────────────────
     applyPhysics(dt) {
-        // Track detection
-        this.onTrack = this.isOnTrack(this.x, this.y);
+        const isTank = this.vehicleType === 'tank';
+        const isOnTrack = this.isOnTrack(this.x, this.y);
+        this.onTrack = isTank ? true : isOnTrack;
 
-        // Friction (more on dirt)
+        // Tanks ignore grass slowdown and off-track speed limits.
         const fric = this.onTrack ? this.friction : this.dirtFriction;
         this.speed *= fric;
 
-        // Speed cap (halved off-track)
         const maxSpd = this.onTrack ? this.topSpeed : this.topSpeed * 0.5;
         this.speed = Phaser.Math.Clamp(this.speed, -maxSpd * 0.3, maxSpd);
 

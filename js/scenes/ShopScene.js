@@ -1,4 +1,4 @@
-// ShopScene — Between-race upgrade shop
+﻿// ShopScene - Garage: owned vehicle selector plus per-vehicle upgrades.
 
 class ShopScene extends Phaser.Scene {
     constructor() {
@@ -6,221 +6,374 @@ class ShopScene extends Phaser.Scene {
     }
 
     create() {
-        // Background
         this.add.graphics().fillStyle(0x1a1a2e, 1).fillRect(0, 0, 1280, 720);
 
-        // Title
-        this.add.text(640, 30, 'UPGRADE SHOP', {
-            fontSize: '36px', fontFamily: 'Arial Black, Arial, sans-serif',
+        const ownedColors = Object.keys(GameState.purchasedVehicles)
+            .map(Number)
+            .filter(color => GameState.purchasedVehicles[color]);
+
+        this._selectedColor = GameState.isVehicleUnlocked(GameState.playerColor)
+            ? GameState.playerColor
+            : (ownedColors[0] || null);
+
+        this._buildUI();
+    }
+
+    _buildUI() {
+        if (this._uiContainer) this._uiContainer.destroy();
+
+        const items = [];
+        this._uiContainer = this.add.container(0, 0);
+
+        items.push(this.add.text(640, 18, 'GARAGE', {
+            fontSize: '28px', fontFamily: 'Arial Black, Arial, sans-serif',
             color: '#ffcc00', stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5));
+
+        items.push(this.add.text(640, 50, `Race ${GameState.raceNumber} Complete`, {
+            fontSize: '12px', fontFamily: 'Arial, sans-serif', color: '#888888'
+        }).setOrigin(0.5));
+
+        this.moneyLabel = this.add.text(640, 72, `$${GameState.money}`, {
+            fontSize: '20px', fontFamily: 'Arial, sans-serif',
+            color: '#ffcc00', stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
+        items.push(this.moneyLabel);
 
-        // Race number
-        this.add.text(640, 70, `Race ${GameState.raceNumber} Complete — Next Race: ${GameState.raceNumber + 1}`, {
-            fontSize: '14px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
-        }).setOrigin(0.5);
+        items.push(this.add.text(30, 98, 'MY VEHICLES', {
+            fontSize: '11px', fontFamily: "'Press Start 2P', cursive", color: '#aaaaaa'
+        }));
 
-        // Money display
-        this.moneyText = this.add.text(640, 105, '', {
-            fontSize: '24px', fontFamily: 'Arial, sans-serif',
-            color: '#ffcc00', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5);
-        this.updateMoneyText();
+        const owned = Object.keys(GameState.purchasedVehicles)
+            .map(Number)
+            .filter(color => GameState.purchasedVehicles[color]);
+        const cardW = 140;
+        const cardH = 110;
+        const gap = 10;
+        const cols = 3;
+        const panelX = 20;
+        const panelY = 115;
 
-        // Upgrade buttons
-        this.buttons = [];
-        const stats = [
-            { key: 'topSpeed',     label: 'Top Speed',     icon: '🏎️', color: '#ff6666' },
-            { key: 'acceleration', label: 'Acceleration',  icon: '⚡', color: '#66ff66' },
-            { key: 'handling',     label: 'Handling',       icon: '🔄', color: '#6699ff' },
-            { key: 'nitro',        label: 'Nitro Capacity', icon: '🔥', color: '#00ccff' },
-        ];
-
-        const startY = 160;
-        const rowH = 95;
-
-        for (let i = 0; i < stats.length; i++) {
-            this.createUpgradeRow(stats[i], startY + i * rowH);
+        for (let index = 0; index < owned.length; index++) {
+            const color = owned[index];
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const cx = panelX + col * (cardW + gap) + cardW / 2;
+            const cy = panelY + row * (cardH + gap);
+            this._drawVehicleCard(cx, cy, cardW, cardH, color, items);
         }
 
-        // Player stats preview
-        this.statsText = this.add.text(640, 665, '', {
-            fontSize: '12px', fontFamily: 'Arial, sans-serif', color: '#888888'
-        }).setOrigin(0.5);
-        this.updateStatsPreview();
+        this._drawUpgradePanel(items);
+        this._drawBottomButtons(items);
 
-        // ── Cheat code: ↑×10 then ↓×3 = +$100 ────────────────
-        this._cheatSeq = [];  // track arrow key sequence
-        this.input.keyboard.on('keydown', (e) => {
-            if (e.key === 'ArrowUp') {
-                this._cheatSeq.push('U');
-            } else if (e.key === 'ArrowDown') {
-                this._cheatSeq.push('D');
-            } else {
+        this._cheatSeq = [];
+        this.input.keyboard.removeAllListeners('keydown');
+        this.input.keyboard.on('keydown', (event) => {
+            if (event.key === 'ArrowUp') this._cheatSeq.push('U');
+            else if (event.key === 'ArrowDown') this._cheatSeq.push('D');
+            else {
                 this._cheatSeq = [];
                 return;
             }
-            // Keep only last 13 keys
+
             if (this._cheatSeq.length > 13) this._cheatSeq.shift();
-            // Check for 10 ups then 3 downs
-            if (this._cheatSeq.length >= 13) {
-                const seq = this._cheatSeq.slice(-13).join('');
-                if (seq === 'UUUUUUUUUUDDD') {
-                    GameState.money += 100;
-                    this._cheatSeq = [];
-                    // Flash feedback then refresh
-                    const flash = this.add.text(640, 140, '💰 +$100!', {
-                        fontSize: '20px', fontFamily: "'Press Start 2P', cursive",
-                        color: '#00ff88', stroke: '#000000', strokeThickness: 4
-                    }).setOrigin(0.5).setDepth(100);
-                    this.tweens.add({
-                        targets: flash, alpha: 0, y: 110,
-                        duration: 800, ease: 'Power2',
-                        onComplete: () => this.scene.restart()
-                    });
-                    this._cheatSeq = [];
+            if (this._cheatSeq.slice(-13).join('') !== 'UUUUUUUUUUDDD') return;
+
+            GameState.money += 100;
+            this._cheatSeq = [];
+            const flash = this.add.text(640, 68, '+$100', {
+                fontSize: '18px', fontFamily: "'Press Start 2P', cursive",
+                color: '#00ff88', stroke: '#000000', strokeThickness: 3
+            }).setOrigin(0.5).setDepth(200);
+            this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                y: 48,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => {
+                    flash.destroy();
+                    this._rebuildUI();
                 }
-            }
+            });
         });
 
-        // "Next Race" button
-        const nextBtn = this.add.graphics();
-        nextBtn.fillStyle(0x33aa33, 1);
-        nextBtn.fillRoundedRect(540, 590, 200, 50, 10);
-        nextBtn.setDepth(10);
-
-        const isSingle = GameState.gameMode === 'single' || GameState.gameMode !== 'championship';
-        const isChampGarage = GameState._champReturnToResults;
-        GameState._champReturnToResults = false;
-        const btnLabel = isChampGarage ? '◄ DONE' : (isSingle ? '◄ BACK TO TRACKS' : 'NEXT RACE ►');
-
-        this.add.text(640, 615, btnLabel, {
-            fontSize: '22px', fontFamily: 'Arial Black, Arial, sans-serif',
-            color: '#ffffff', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5).setDepth(11);
-
-        const nextZone = this.add.zone(640, 615, 200, 50).setInteractive().setDepth(12);
-        nextZone.on('pointerdown', () => {
-            if (isChampGarage) {
-                // Return to track select — championship state preserved
-                this.scene.start('TrackSelectScene');
-            } else if (isSingle) {
-                this.scene.start('TrackSelectScene');
-            } else {
-                // Set the next championship track
-                const idx = GameState.championshipRaceIndex;
-                const order = GameState.championshipOrder || [];
-                const trackIdx = order[idx] !== undefined ? order[idx] : idx;
-                if (trackIdx < GameState.tracks.length) {
-                    GameState.selectedTrack = GameState.tracks[trackIdx];
-                }
-                this.scene.start('RaceScene');
-            }
-        });
-
-        // Hover effect
-        nextZone.on('pointerover', () => nextBtn.clear().fillStyle(0x44cc44, 1).fillRoundedRect(540, 590, 200, 50, 10));
-        nextZone.on('pointerout', () => nextBtn.clear().fillStyle(0x33aa33, 1).fillRoundedRect(540, 590, 200, 50, 10));
+        this._uiContainer.add(items);
     }
 
-    createUpgradeRow(stat, y) {
-        const level = GameState.upgrades[stat.key];
-        const maxed = level >= GameState.maxLevel;
-        const cost = GameState.getCost(stat.key);
-        const canAfford = GameState.money >= cost;
+    _rebuildUI() {
+        if (this._uiContainer) this._uiContainer.destroy();
+        this._buildUI();
+    }
 
-        // Row background
-        const rowBg = this.add.graphics();
-        rowBg.fillStyle(0x2a2a4e, 0.8);
-        rowBg.fillRoundedRect(300, y, 680, 80, 8);
+    _drawVehicleCard(cx, cy, width, height, color, items) {
+        const preset = GameState.truckPresets[color];
+        if (!preset) return;
 
-        // Icon + label
-        this.add.text(330, y + 12, `${stat.icon} ${stat.label}`, {
-            fontSize: '20px', fontFamily: 'Arial, sans-serif', color: stat.color,
-            stroke: '#000000', strokeThickness: 3
+        const isSelected = color === this._selectedColor;
+        const bg = this.add.graphics();
+        bg.fillStyle(isSelected ? 0x2a4a7a : 0x1e1e3e, 1);
+        bg.fillRoundedRect(cx - width / 2, cy, width, height, 8);
+        if (isSelected) {
+            bg.lineStyle(3, 0xffcc00, 1);
+            bg.strokeRoundedRect(cx - width / 2, cy, width, height, 8);
+        }
+        items.push(bg);
+
+        items.push(this.add.text(cx, cy + 12, preset.name, {
+            fontSize: '9px', fontFamily: "'Press Start 2P', cursive", color: '#ffffff'
+        }).setOrigin(0.5));
+
+        items.push(this._miniPreview(cx, cy + 55, color, preset));
+
+        const upgrades = GameState.getVehicleUpgrades(color);
+        const totalLevel = upgrades.topSpeed + upgrades.acceleration + upgrades.handling + upgrades.nitro;
+        items.push(this.add.text(cx, cy + height - 12, totalLevel > 0 ? `UP ${totalLevel}` : 'STOCK', {
+            fontSize: '8px', fontFamily: 'Arial, sans-serif',
+            color: totalLevel > 0 ? '#ffcc00' : '#666666'
+        }).setOrigin(0.5));
+
+        const zone = this.add.zone(cx, cy + height / 2, width, height).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+            this._selectedColor = color;
+            GameState.playerColor = color;
+            this._rebuildUI();
         });
+        items.push(zone);
+    }
 
-        // Level pips (10 levels, smaller to fit)
-        const pipsX = 330;
-        const pipsY = y + 48;
-        for (let i = 0; i < GameState.maxLevel; i++) {
-            const pip = this.add.graphics();
-            if (i < level) {
-                pip.fillStyle(Phaser.Display.Color.HexStringToColor(stat.color).color, 1);
-            } else {
-                pip.fillStyle(0x444444, 1);
-            }
-            pip.fillRoundedRect(pipsX + i * 18, pipsY, 14, 12, 3);
+    _miniPreview(cx, cy, color, preset) {
+        const gfx = this.add.graphics();
+        const type = preset.type || 'truck';
+
+        if (type === 'bike') {
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 3, cy - 13, 6, 7);
+            gfx.fillRect(cx - 3, cy + 6, 6, 7);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 5, cy - 7, 10, 14, 3);
+        } else if (type === 'f1') {
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 4, cy - 12, 8, 24, 3);
+            gfx.fillTriangle(cx, cy - 16, cx - 3, cy - 12, cx + 3, cy - 12);
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillRect(cx - 8, cy - 10, 4, 5);
+            gfx.fillRect(cx + 4, cy - 10, 4, 5);
+            gfx.fillRect(cx - 8, cy + 3, 4, 6);
+            gfx.fillRect(cx + 4, cy + 3, 4, 6);
+        } else if (type === 'tank') {
+            gfx.fillStyle(0x333333, 1);
+            gfx.fillRect(cx - 9, cy - 10, 4, 20);
+            gfx.fillRect(cx + 5, cy - 10, 4, 20);
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 5, cy - 9, 10, 18, 1);
+            gfx.fillCircle(cx, cy, 4);
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRect(cx - 1, cy - 12, 2, 9);
+        } else {
+            gfx.fillStyle(color, 1);
+            gfx.fillRoundedRect(cx - 6, cy - 11, 12, 22, 3);
+            gfx.fillStyle(0x88ccff, 0.7);
+            gfx.fillRect(cx - 4, cy - 7, 8, 5);
+            gfx.fillStyle(0x222222, 1);
+            gfx.fillRect(cx - 8, cy - 7, 3, 6);
+            gfx.fillRect(cx + 5, cy - 7, 3, 6);
+            gfx.fillRect(cx - 8, cy + 3, 3, 6);
+            gfx.fillRect(cx + 5, cy + 3, 3, 6);
         }
 
-        // Level text
-        this.add.text(520, y + 48, `Lv ${level}/${GameState.maxLevel}`, {
-            fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#cccccc'
-        });
+        return gfx;
+    }
 
-        // Current value
+    _drawUpgradePanel(items) {
+        const color = this._selectedColor;
+        const panelX = 490;
+        const panelY = 95;
+
+        if (!color) {
+            items.push(this.add.text(panelX + 300, 360, 'No vehicle selected.\nVisit the Vehicle Shop to buy one.', {
+                fontSize: '16px', fontFamily: 'Arial, sans-serif', color: '#888888', align: 'center'
+            }).setOrigin(0.5));
+            return;
+        }
+
+        const preset = GameState.truckPresets[color];
+        items.push(this.add.text(panelX + 10, panelY, `UPGRADES - ${preset.name}`, {
+            fontSize: '13px', fontFamily: "'Press Start 2P', cursive", color: '#ffcc00'
+        }));
+
+        const statDefs = [
+            { key: 'topSpeed', label: 'Top Speed', barColor: '#ff6666' },
+            { key: 'acceleration', label: 'Acceleration', barColor: '#66ff66' },
+            { key: 'handling', label: 'Handling', barColor: '#6699ff' },
+            { key: 'nitro', label: 'Nitro', barColor: '#00ccff' },
+        ];
+        const rowHeight = 100;
+        const startY = panelY + 35;
+
+        for (let index = 0; index < statDefs.length; index++) {
+            this._drawUpgradeRow(statDefs[index], startY + index * rowHeight, color, panelX, items);
+        }
+
         const stats = GameState.getPlayerStats();
-        const valMap = {
+        items.push(this.add.text(panelX + 10, startY + statDefs.length * rowHeight,
+            `Stats: SPD ${stats.topSpeed} | ACC ${stats.acceleration} | HND ${stats.handling.toFixed(1)} | NOS ${stats.nitroMax}`,
+            { fontSize: '11px', fontFamily: 'Arial, sans-serif', color: '#888888' }
+        ));
+    }
+
+    _drawUpgradeRow(stat, y, color, panelX, items) {
+        const upgrades = GameState.getVehicleUpgrades(color);
+        const level = upgrades[stat.key] || 0;
+        const maxed = level >= GameState.maxLevel;
+        const cost = GameState.getCost(color, stat.key);
+        const canAfford = GameState.money >= cost;
+
+        const rowBg = this.add.graphics();
+        rowBg.fillStyle(0x2a2a4e, 0.8);
+        rowBg.fillRoundedRect(panelX, y, 760, 88, 8);
+        items.push(rowBg);
+
+        items.push(this.add.text(panelX + 16, y + 10, stat.label, {
+            fontSize: '18px', fontFamily: 'Arial, sans-serif', color: stat.barColor,
+            stroke: '#000000', strokeThickness: 3
+        }));
+
+        for (let pipIndex = 0; pipIndex < GameState.maxLevel; pipIndex++) {
+            const pip = this.add.graphics();
+            pip.fillStyle(
+                pipIndex < level ? Phaser.Display.Color.HexStringToColor(stat.barColor).color : 0x444444,
+                1
+            );
+            pip.fillRoundedRect(panelX + 16 + pipIndex * 19, y + 46, 15, 12, 3);
+            items.push(pip);
+        }
+
+        items.push(this.add.text(panelX + 215, y + 46, `Lv ${level}/${GameState.maxLevel}`, {
+            fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#cccccc'
+        }));
+
+        const stats = GameState.getPlayerStats();
+        const valueMap = {
             topSpeed: `${stats.topSpeed} mph`,
             acceleration: `${stats.acceleration}`,
             handling: `${stats.handling.toFixed(2)}`,
             nitro: `${stats.nitroMax} tanks`,
         };
-        this.add.text(620, y + 48, valMap[stat.key], {
+        items.push(this.add.text(panelX + 300, y + 46, valueMap[stat.key], {
             fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#999999'
-        });
+        }));
 
-        // Buy button
         if (maxed) {
-            this.add.text(890, y + 30, 'MAXED', {
-                fontSize: '18px', fontFamily: 'Arial Black, Arial, sans-serif',
-                color: '#888888'
-            }).setOrigin(0.5);
-        } else {
-            const btnColor = canAfford ? 0xcc8800 : 0x555555;
-            const btn = this.add.graphics();
-            btn.fillStyle(btnColor, 1);
-            btn.fillRoundedRect(820, y + 12, 140, 55, 8);
-
-            const btnText = this.add.text(890, y + 28, `$${cost}`, {
-                fontSize: '18px', fontFamily: 'Arial Black, Arial, sans-serif',
-                color: canAfford ? '#ffffff' : '#777777',
-                stroke: '#000000', strokeThickness: 2
-            }).setOrigin(0.5);
-
-            this.add.text(890, y + 50, 'UPGRADE', {
-                fontSize: '11px', fontFamily: 'Arial, sans-serif',
-                color: canAfford ? '#ffcc00' : '#555555'
-            }).setOrigin(0.5);
-
-            if (canAfford) {
-                const zone = this.add.zone(890, y + 39, 140, 55).setInteractive();
-                zone.on('pointerdown', () => {
-                    if (GameState.buyUpgrade(stat.key)) {
-                        // Refresh the shop
-                        this.scene.restart();
-                    }
-                });
-                zone.on('pointerover', () => {
-                    btn.clear().fillStyle(0xeeaa00, 1).fillRoundedRect(820, y + 12, 140, 55, 8);
-                });
-                zone.on('pointerout', () => {
-                    btn.clear().fillStyle(btnColor, 1).fillRoundedRect(820, y + 12, 140, 55, 8);
-                });
-            }
+            items.push(this.add.text(panelX + 650, y + 44, 'MAXED', {
+                fontSize: '16px', fontFamily: 'Arial Black, Arial, sans-serif', color: '#888888'
+            }).setOrigin(0.5));
+            return;
         }
+
+        const buttonColor = canAfford ? 0xcc8800 : 0x555555;
+        const buttonX = panelX + 585;
+        const button = this.add.graphics();
+        button.fillStyle(buttonColor, 1);
+        button.fillRoundedRect(buttonX, y + 16, 160, 56, 8);
+        items.push(button);
+
+        items.push(this.add.text(buttonX + 80, y + 32, `$${cost}`, {
+            fontSize: '17px', fontFamily: 'Arial Black, Arial, sans-serif',
+            color: canAfford ? '#ffffff' : '#777777',
+            stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5));
+        items.push(this.add.text(buttonX + 80, y + 54, 'UPGRADE', {
+            fontSize: '10px', fontFamily: 'Arial, sans-serif',
+            color: canAfford ? '#ffcc00' : '#555555'
+        }).setOrigin(0.5));
+
+        if (!canAfford) return;
+
+        const zone = this.add.zone(buttonX + 80, y + 44, 160, 56).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+            if (GameState.buyUpgrade(color, stat.key)) this._rebuildUI();
+        });
+        zone.on('pointerover', () => {
+            button.clear();
+            button.fillStyle(0xeeaa00, 1);
+            button.fillRoundedRect(buttonX, y + 16, 160, 56, 8);
+        });
+        zone.on('pointerout', () => {
+            button.clear();
+            button.fillStyle(buttonColor, 1);
+            button.fillRoundedRect(buttonX, y + 16, 160, 56, 8);
+        });
+        items.push(zone);
     }
 
-    updateMoneyText() {
-        this.moneyText.setText(`💰 $${GameState.money}`);
-    }
+    _drawBottomButtons(items) {
+        const isSingle = GameState.gameMode !== 'championship';
+        const isChampGarage = GameState._champReturnToResults;
+        GameState._champReturnToResults = false;
 
-    updateStatsPreview() {
-        const s = GameState.getPlayerStats();
-        const aiMult = GameState.getAiPenaltyMultiplier ? GameState.getAiPenaltyMultiplier() : 1;
-        const aiPct = Math.round(aiMult * 100);
-        this.statsText.setText(
-            `Your stats: Speed ${s.topSpeed} | Accel ${s.acceleration} | Handling ${s.handling.toFixed(1)} | Nitro ${s.nitroMax}   •   AI power this race: ${aiPct}%`
-        );
+        const shopBg = this.add.graphics();
+        shopBg.fillStyle(0x884400, 1);
+        shopBg.fillRoundedRect(310, 655, 260, 48, 10);
+        items.push(shopBg);
+        items.push(this.add.text(440, 679, 'VEHICLE SHOP', {
+            fontSize: '12px', fontFamily: "'Press Start 2P', cursive", color: '#ffcc00'
+        }).setOrigin(0.5));
+
+        const shopZone = this.add.zone(440, 679, 260, 48).setInteractive({ useHandCursor: true });
+        shopZone.on('pointerover', () => {
+            shopBg.clear();
+            shopBg.fillStyle(0xaa5500, 1);
+            shopBg.fillRoundedRect(310, 655, 260, 48, 10);
+            shopBg.lineStyle(2, 0xffcc00, 1);
+            shopBg.strokeRoundedRect(310, 655, 260, 48, 10);
+        });
+        shopZone.on('pointerout', () => {
+            shopBg.clear();
+            shopBg.fillStyle(0x884400, 1);
+            shopBg.fillRoundedRect(310, 655, 260, 48, 10);
+        });
+        shopZone.on('pointerdown', () => {
+            GameState.previousScene = 'ShopScene';
+            this.scene.start('VehicleShopScene');
+        });
+        items.push(shopZone);
+
+        const nextLabel = isChampGarage ? 'DONE' : (isSingle ? 'BACK TO TRACKS' : 'NEXT RACE');
+        const nextBg = this.add.graphics();
+        nextBg.fillStyle(0x33aa33, 1);
+        nextBg.fillRoundedRect(710, 655, 260, 48, 10);
+        items.push(nextBg);
+        items.push(this.add.text(840, 679, nextLabel, {
+            fontSize: '14px', fontFamily: 'Arial Black, Arial, sans-serif',
+            color: '#ffffff', stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5));
+
+        const nextZone = this.add.zone(840, 679, 260, 48).setInteractive({ useHandCursor: true });
+        nextZone.on('pointerover', () => {
+            nextBg.clear();
+            nextBg.fillStyle(0x44cc44, 1);
+            nextBg.fillRoundedRect(710, 655, 260, 48, 10);
+        });
+        nextZone.on('pointerout', () => {
+            nextBg.clear();
+            nextBg.fillStyle(0x33aa33, 1);
+            nextBg.fillRoundedRect(710, 655, 260, 48, 10);
+        });
+        nextZone.on('pointerdown', () => {
+            if (isChampGarage || isSingle) {
+                this.scene.start('TrackSelectScene');
+                return;
+            }
+
+            const idx = GameState.championshipRaceIndex;
+            const order = GameState.championshipOrder || [];
+            const trackIdx = order[idx] !== undefined ? order[idx] : idx;
+            if (trackIdx < GameState.tracks.length) {
+                GameState.selectedTrack = GameState.tracks[trackIdx];
+            }
+            this.scene.start('RaceScene');
+        });
+        items.push(nextZone);
     }
 }

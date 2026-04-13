@@ -6,7 +6,7 @@ const GameState = {
     sfxMuted: false,
 
     // Player
-    money: 0,
+    money: 5000,
     raceNumber: 0,
     playerName: 'PLAYER',    // set by BootScene name input
     selectedTrack: null,     // set by TrackSelectScene
@@ -18,25 +18,21 @@ const GameState = {
     purchasedVehicles: {},
 
     // Truck color presets — each has different base stat strengths
+    // ALL vehicles cost $5 000. Player starts with $5 000 to buy their first.
     truckPresets: {
-        0xff0000: { name: 'Red Fury',      topSpeed: 200, acceleration: 150, handling: 3.0, nitro: 5 },
-        0x3388ff: { name: 'Blue Thunder',   topSpeed: 185, acceleration: 160, handling: 3.2, nitro: 6 },
-        0xffcc00: { name: 'Gold Rush',      topSpeed: 210, acceleration: 140, handling: 2.8, nitro: 5 },
-        0x33cc33: { name: 'Green Machine',  topSpeed: 190, acceleration: 145, handling: 3.4, nitro: 5 },
-        0xff66cc: { name: 'Pink Rocket',    topSpeed: 220, acceleration: 135, handling: 2.6, nitro: 4 },
-        0xff8800: { name: 'Orange Blaze',   topSpeed: 195, acceleration: 155, handling: 2.9, nitro: 7 },
-        0x000000: { name: 'Night Rider',    topSpeed: 225, acceleration: 170, handling: 3.8, nitro: 6, type: 'bike', shopOnly: true, price: 10000 },
-        0xcc0000: { name: 'F1 Viper',        topSpeed: 260, acceleration: 180, handling: 4.2, nitro: 3, type: 'f1',   shopOnly: true, price: 15000 },
-        0x556B2F: { name: 'Iron Beast',       topSpeed:  90, acceleration:  60, handling: 2.5, nitro: 2, type: 'tank', shopOnly: true, price: 20000 },
+        0xff0000: { name: 'Red Fury',     topSpeed: 200, acceleration: 150, handling: 3.0, nitro: 5, price: 5000 },
+        0x3388ff: { name: 'Blue Thunder',  topSpeed: 185, acceleration: 160, handling: 3.2, nitro: 6, price: 5000 },
+        0xffcc00: { name: 'Gold Rush',     topSpeed: 210, acceleration: 140, handling: 2.8, nitro: 5, price: 5000 },
+        0x33cc33: { name: 'Green Machine', topSpeed: 190, acceleration: 145, handling: 3.4, nitro: 5, price: 5000 },
+        0xff66cc: { name: 'Pink Rocket',   topSpeed: 220, acceleration: 135, handling: 2.6, nitro: 4, price: 5000 },
+        0xff8800: { name: 'Orange Blaze',  topSpeed: 195, acceleration: 155, handling: 2.9, nitro: 7, price: 5000 },
+        0x000000: { name: 'Night Rider',   topSpeed: 225, acceleration: 170, handling: 3.8, nitro: 6, type: 'bike', price: 5000 },
+        0xcc0000: { name: 'F1 Viper',      topSpeed: 260, acceleration: 180, handling: 4.2, nitro: 3, type: 'f1',   price: 5000 },
+        0x556B2F: { name: 'Iron Beast',    topSpeed:  90, acceleration:  60, handling: 2.5, nitro: 2, type: 'tank', price: 5000 },
     },
 
-    // Player upgrade levels (0-10 each)
-    upgrades: {
-        topSpeed:     0,
-        acceleration: 0,
-        handling:     0,
-        nitro:        0,
-    },
+    // Per-vehicle upgrade levels — { [colorKey]: { topSpeed, acceleration, handling, nitro } }
+    vehicleUpgrades: {},
 
     // Per-level bonus (applied on top of truck preset base stats)
     perLevel: {
@@ -63,11 +59,8 @@ const GameState = {
         return 1 - this.aiStartPenalty * (1 - fade);
     },
 
-    // Check whether a vehicle is available for selection
+    // Check whether a vehicle is owned (purchased)
     isVehicleUnlocked(color) {
-        const preset = this.truckPresets[color];
-        if (!preset) return false;
-        if (!preset.shopOnly) return true;
         return !!this.purchasedVehicles[color];
     },
 
@@ -84,7 +77,10 @@ const GameState = {
     },
 
     getPlayerColor() {
-        return this.isVehicleUnlocked(this.playerColor) ? this.playerColor : 0xff0000;
+        // Return selected color if owned, otherwise fallback to first owned vehicle
+        if (this.isVehicleUnlocked(this.playerColor)) return this.playerColor;
+        const first = Object.keys(this.purchasedVehicles).map(Number).find(c => this.purchasedVehicles[c]);
+        return first || 0xff0000;
     },
 
     // Get base stats for the selected truck color
@@ -93,31 +89,39 @@ const GameState = {
         return this.truckPresets[color] || this.truckPresets[0xff0000];
     },
 
-    // Compute player stats from truck preset base + upgrades
+    // Get upgrade levels for a specific vehicle (defaults to all zero)
+    getVehicleUpgrades(color) {
+        return this.vehicleUpgrades[color] || { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0 };
+    },
+
+    // Compute player stats from truck preset base + per-vehicle upgrades
     getPlayerStats() {
         const base = this.getBaseStats();
+        const upg  = this.getVehicleUpgrades(this.getPlayerColor());
         return {
-            topSpeed:     base.topSpeed     + this.upgrades.topSpeed     * this.perLevel.topSpeed,
-            acceleration: base.acceleration + this.upgrades.acceleration * this.perLevel.acceleration,
-            handling:     base.handling     + this.upgrades.handling     * this.perLevel.handling,
-            nitroMax:     base.nitro        + this.upgrades.nitro        * this.perLevel.nitro,
+            topSpeed:     base.topSpeed     + upg.topSpeed     * this.perLevel.topSpeed,
+            acceleration: base.acceleration + upg.acceleration * this.perLevel.acceleration,
+            handling:     base.handling     + upg.handling     * this.perLevel.handling,
+            nitroMax:     base.nitro        + upg.nitro        * this.perLevel.nitro,
         };
     },
 
-    // Get cost for next level of an upgrade
-    getCost(stat) {
-        const level = this.upgrades[stat];
+    // Get cost for next level of an upgrade on a given vehicle
+    getCost(color, stat) {
+        const level = this.getVehicleUpgrades(color)[stat] || 0;
         if (level >= this.maxLevel) return Infinity;
-        // Price ramps steeply over 10 levels
         return this.upgradeCost[stat] + level * 80;
     },
 
-    // Buy an upgrade
-    buyUpgrade(stat) {
-        const cost = this.getCost(stat);
-        if (this.money >= cost && this.upgrades[stat] < this.maxLevel) {
+    // Buy an upgrade for a specific vehicle
+    buyUpgrade(color, stat) {
+        if (!this.vehicleUpgrades[color]) {
+            this.vehicleUpgrades[color] = { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0 };
+        }
+        const cost = this.getCost(color, stat);
+        if (this.money >= cost && this.vehicleUpgrades[color][stat] < this.maxLevel) {
             this.money -= cost;
-            this.upgrades[stat]++;
+            this.vehicleUpgrades[color][stat]++;
             return true;
         }
         return false;
@@ -171,16 +175,14 @@ const GameState = {
 
     // Reset for new game (keeps selectedTrack and playerColor)
     reset() {
-        this.money = 0;
+        this.money = 5000;
         this.raceNumber = 0;
         this.championshipRaceIndex = 0;
         this.championshipOrder = [];
         this.championshipPoints = { player: 0, ai: [0, 0, 0] };
-        this.upgrades.topSpeed = 0;
-        this.upgrades.acceleration = 0;
-        this.upgrades.handling = 0;
-        this.upgrades.nitro = 0;
+        this.vehicleUpgrades = {};
         this.purchasedVehicles = {};
+        this.playerColor = 0xff0000;
         this.aiUpgrades = [
             { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0, money: 0 },
             { topSpeed: 0, acceleration: 0, handling: 0, nitro: 0, money: 0 },
@@ -198,7 +200,7 @@ const GameState = {
             playerColor: this.playerColor,
             money: this.money,
             raceNumber: this.raceNumber,
-            upgrades: { ...this.upgrades },
+            vehicleUpgrades: JSON.parse(JSON.stringify(this.vehicleUpgrades)),
             purchasedVehicles: { ...this.purchasedVehicles },
             aiUpgrades: this.aiUpgrades.map(a => ({ ...a })),
             gameMode: this.gameMode,
@@ -210,6 +212,7 @@ const GameState = {
             },
             musicMuted: this.musicMuted,
             sfxMuted: this.sfxMuted,
+            saveVersion: 2,
         }, null, 2);
     },
 
@@ -217,14 +220,27 @@ const GameState = {
     loadSave(s) {
         this.playerName = s.playerName || 'PLAYER';
         this.playerColor = s.playerColor || 0xff0000;
-        this.money = s.money || 0;
+        this.money = s.money != null ? s.money : 5000;
         this.raceNumber = s.raceNumber || 0;
         this.purchasedVehicles = s.purchasedVehicles || {};
-        if (s.upgrades) {
-            this.upgrades.topSpeed = s.upgrades.topSpeed || 0;
-            this.upgrades.acceleration = s.upgrades.acceleration || 0;
-            this.upgrades.handling = s.upgrades.handling || 0;
-            this.upgrades.nitro = s.upgrades.nitro || 0;
+        // v2 save: per-vehicle upgrades
+        if (s.vehicleUpgrades) {
+            this.vehicleUpgrades = s.vehicleUpgrades;
+        } else if (s.upgrades) {
+            // v1 migration: apply old global upgrades to the saved playerColor vehicle
+            const c = s.playerColor || 0xff0000;
+            this.vehicleUpgrades = {};
+            this.vehicleUpgrades[c] = {
+                topSpeed:     s.upgrades.topSpeed     || 0,
+                acceleration: s.upgrades.acceleration || 0,
+                handling:     s.upgrades.handling     || 0,
+                nitro:        s.upgrades.nitro        || 0,
+            };
+        } else {
+            this.vehicleUpgrades = {};
+        }
+        if (!Object.keys(this.purchasedVehicles).some(color => this.purchasedVehicles[color])) {
+            this.purchasedVehicles[this.playerColor] = true;
         }
         if (s.aiUpgrades) this.aiUpgrades = s.aiUpgrades;
         this.gameMode = s.gameMode || 'single';

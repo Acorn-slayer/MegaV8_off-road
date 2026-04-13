@@ -664,7 +664,7 @@ class RaceScene extends Phaser.Scene {
         // ── Engine sound (RPM + pitch scale with upgrade level) ──
         const base = GameState.getBaseStats();
         const maxPossibleSpeed = base.topSpeed + GameState.maxLevel * GameState.perLevel.topSpeed;
-        const upgradeRatio = GameState.upgrades.topSpeed / GameState.maxLevel; // 0 = stock, 1 = maxed
+        const upgradeRatio = (GameState.getVehicleUpgrades(GameState.getPlayerColor()).topSpeed || 0) / GameState.maxLevel;
         soundFX.updateEngine(this.playerTruck.speed, maxPossibleSpeed, upgradeRatio);
 
         // ── Nitro boost sound (play once on activation) ────────
@@ -1369,7 +1369,7 @@ class RaceScene extends Phaser.Scene {
         }
     }
 
-    // ── Tank cannon: fire a shell forward ──────────────────────
+    // ── Tank cannon: fire a bouncing shell (Mario-Kart-shell style) ──
     _fireCannonShell(truck) {
         const now = this.time.now;
         if (truck._lastShot && now - truck._lastShot < 1500) return; // 1.5s cooldown
@@ -1379,68 +1379,178 @@ class RaceScene extends Phaser.Scene {
         const sx = truck.x + Math.cos(truck.angle) * offsetDist;
         const sy = truck.y + Math.sin(truck.angle) * offsetDist;
 
+        const SHELL_SPEED = 380;
+
+        // Draw a yellow cannonball with inner highlight
         const gfx = this.add.graphics();
-        gfx.fillStyle(0xffaa00, 1);
-        gfx.fillCircle(0, 0, 5);
-        gfx.lineStyle(2, 0xff6600, 1);
-        gfx.strokeCircle(0, 0, 5);
+        gfx.fillStyle(0xff6600, 1);
+        gfx.fillCircle(0, 0, 7);
+        gfx.fillStyle(0xffdd00, 1);
+        gfx.fillCircle(-2, -2, 3);
         gfx.setPosition(sx, sy).setDepth(200);
 
         this.cannonShells.push({
             x: sx, y: sy,
-            angle: truck.angle,
-            speed: 380,
-            maxDist: 500,
-            distTraveled: 0,
+            vx: Math.cos(truck.angle) * SHELL_SPEED,
+            vy: Math.sin(truck.angle) * SHELL_SPEED,
+            bounces: 0,
+            maxBounces: 4,
+            spawnTime: now,
+            gracePeriod: 0.4, // seconds before owner can be hit
             gfx,
             owner: truck,
         });
     }
 
-    // ── Tank cannon: move shells and check hits ─────────────────
+    // ── Tank cannon: update bouncing shells ─────────────────────
     _updateCannonShells(dt) {
+        const walls = this.track.walls || [];
+        const truckHitRadius = 26;
+        const wallHitRadius = 8;
+
         for (let i = this.cannonShells.length - 1; i >= 0; i--) {
             const shell = this.cannonShells[i];
+            const age = (this.time.now - shell.spawnTime) / 1000;
+            const prevX = shell.x;
+            const prevY = shell.y;
 
-            const mx = Math.cos(shell.angle) * shell.speed * dt;
-            const my = Math.sin(shell.angle) * shell.speed * dt;
-            shell.x += mx;
-            shell.y += my;
-            shell.distTraveled += Math.sqrt(mx * mx + my * my);
+            shell.x += shell.vx * dt;
+            shell.y += shell.vy * dt;
             shell.gfx.setPosition(shell.x, shell.y);
 
-            if (shell.distTraveled >= shell.maxDist) {
-                shell.gfx.destroy();
+            if (shell.bounces > shell.maxBounces) {
+                this._shellExplode(shell);
                 this.cannonShells.splice(i, 1);
                 continue;
             }
 
-            let hit = false;
+            let bounced = false;
+            for (const wall of walls) {
+                const hit = this._segmentToSegmentClosest(
+                    prevX, prevY, shell.x, shell.y,
+                    wall[0], wall[1], wall[2], wall[3]
+                );
+                if (!hit || hit.distance > wallHitRadius) continue;
+
+                const normal = hit.distance === 0
+                    ? this._wallNormal(wall[0], wall[1], wall[2], wall[3])
+                    : { x: hit.dx / hit.distance, y: hit.dy / hit.distance };
+                const dot = shell.vx * normal.x + shell.vy * normal.y;
+                if (dot >= 0) continue;
+
+                shell.vx -= 2 * dot * normal.x;
+                shell.vy -= 2 * dot * normal.y;
+                shell.x += normal.x * (wallHitRadius - hit.distance + 1);
+                shell.y += normal.y * (wallHitRadius - hit.distance + 1);
+                shell.gfx.setPosition(shell.x, shell.y);
+                shell.bounces++;
+                bounced = true;
+                this._flashShell(shell);
+                break;
+            }
+            if (bounced) continue;
+
             for (const truck of this.allTrucks) {
-                if (truck === shell.owner) continue;
-                const dx = truck.x - shell.x;
-                const dy = truck.y - shell.y;
-                if (dx * dx + dy * dy < 22 * 22) {
-                    // Apply oil-spin + near-stop (like driving over oil)
-                    if (!truck._oilCooldown || truck._oilCooldown <= 0) {
-                        truck._oilSpinning = true;
-                        truck._oilSpinTotal = 0;
-                        truck._oilSpinTarget = Math.PI * 2;
-                        truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
-                        truck._oilSpinSpeed = 10;
-                        truck.speed *= 0.1;
-                        truck._oilCooldown = 3.0;
-                        if (truck === this.playerTruck) {
-                            this.cameras.main.shake(300, 0.01);
-                        }
-                    }
-                    shell.gfx.destroy();
-                    this.cannonShells.splice(i, 1);
-                    hit = true;
-                    break;
+                if (truck === shell.owner && age < shell.gracePeriod) continue;
+
+                const dist = this._segmentPointDistance(prevX, prevY, shell.x, shell.y, truck.x, truck.y);
+                if (dist > truckHitRadius) continue;
+
+                if (!truck._oilCooldown || truck._oilCooldown <= 0) {
+                    truck._oilSpinning = true;
+                    truck._oilSpinTotal = 0;
+                    truck._oilSpinTarget = Math.PI * 2;
+                    truck._oilExitAngle = truck.angle + (Math.random() - 0.5) * Math.PI;
+                    truck._oilSpinSpeed = 10;
+                    truck.speed *= 0.1;
+                    truck._oilCooldown = 3.0;
                 }
+                if (truck === this.playerTruck) {
+                    this.cameras.main.shake(300, 0.012);
+                    this.showMessage('HIT!', 800);
+                }
+
+                this._shellExplode(shell);
+                this.cannonShells.splice(i, 1);
+                break;
             }
         }
+    }
+
+    _flashShell(shell) {
+        shell.gfx.clear();
+        shell.gfx.fillStyle(0xffffff, 1);
+        shell.gfx.fillCircle(0, 0, 7);
+        this.time.delayedCall(80, () => {
+            if (!shell.gfx || !shell.gfx.active) return;
+            shell.gfx.clear();
+            shell.gfx.fillStyle(0xff6600, 1);
+            shell.gfx.fillCircle(0, 0, 7);
+            shell.gfx.fillStyle(0xffdd00, 1);
+            shell.gfx.fillCircle(-2, -2, 3);
+        });
+    }
+
+    _segmentPointDistance(ax, ay, bx, by, px, py) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 === 0) return Math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
+
+        let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const cx = ax + t * dx;
+        const cy = ay + t * dy;
+        const ox = px - cx;
+        const oy = py - cy;
+        return Math.sqrt(ox * ox + oy * oy);
+    }
+
+    _segmentToSegmentClosest(ax, ay, bx, by, cx, cy, dx, dy) {
+        const steps = 8;
+        let best = null;
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const px = ax + (bx - ax) * t;
+            const py = ay + (by - ay) * t;
+            const projected = this._projectPointToSegment(px, py, cx, cy, dx, dy);
+            if (!best || projected.distance < best.distance) best = projected;
+        }
+        return best;
+    }
+
+    _projectPointToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 === 0) {
+            const ox = px - ax;
+            const oy = py - ay;
+            return { distance: Math.sqrt(ox * ox + oy * oy), dx: ox, dy: oy };
+        }
+
+        let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const qx = ax + t * dx;
+        const qy = ay + t * dy;
+        const ox = px - qx;
+        const oy = py - qy;
+        return { distance: Math.sqrt(ox * ox + oy * oy), dx: ox, dy: oy };
+    }
+
+    _wallNormal(ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: -dy / len, y: dx / len };
+    }
+
+    _shellExplode(shell) {
+        // Flash white then destroy
+        shell.gfx.clear();
+        shell.gfx.fillStyle(0xffffff, 0.9);
+        shell.gfx.fillCircle(0, 0, 12);
+        this.time.delayedCall(120, () => { if (shell.gfx && shell.gfx.active) shell.gfx.destroy(); });
     }
 
     // ── Background ──────────────────────────────────────────────
@@ -1477,6 +1587,8 @@ class RaceScene extends Phaser.Scene {
         const wallWidth = (this.track.wallWidth || 6) / 2 + 6 * truckScale; // detection radius scaled to truck size
 
         for (const truck of this.allTrucks) {
+            // Tanks can drive over walls.
+            if (truck.vehicleType === 'tank') continue;
             // Track consecutive wall hits for oscillation damping
             if (!truck._wallHitCount) truck._wallHitCount = 0;
             if (!truck._wallHitTimer) truck._wallHitTimer = 0;
