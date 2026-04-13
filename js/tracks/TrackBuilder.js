@@ -139,6 +139,7 @@ const TrackBuilder = {
             name: def.name || 'Custom Track',
             waypoints,
             trackWidth: def.trackWidth || 70,
+            zoomTargetPx: def.zoomTargetPx,
             startLineIndex: def.startLineIndex || 0,
             lapCount: def.lapCount || 3,
             bgColor:     (def.colors && def.colors.bg)     || 0x3a2a1a,

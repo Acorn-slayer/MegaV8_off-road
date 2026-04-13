@@ -23,6 +23,7 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.vx = 0;
         this.vy = 0;
         this.onTrack = true;
+        this.steerState = 0;
 
         // ── Drift / slip state ─────────────────────────────────
         this.slipAngle = 0;        // current lateral slip (rad)
@@ -33,7 +34,7 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.nitroMax = 5;
         this.nitroBoosting = false;
         this.nitroMultiplier = 1.8;
-        this.nitroRegen = 0.15;
+        this.nitroRegen = 0.30;
 
         // ── Truck dimensions ───────────────────────────────────
         this.truckWidth = 10;
@@ -222,13 +223,10 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.speed = Phaser.Math.Clamp(this.speed, -maxSpd * 0.3, maxSpd);
 
         // ── Slip / drift physics ───────────────────────────────
-        // gripSpeed = 8 + topSpeed * 0.09 + handling * 11
-        // Easy AI (110/1.8): 8+9.9+19.8 = 38 → slides at 34%
-        // Stock Player (200/3.0): 8+18+33 = 59 → slides at 30%
-        // Max Upgraded (280/5.0): 8+25.2+55 = 88 → slides at 31%
-        const gripSpeed = 8 + this.topSpeed * 0.09 + this.handling * 11;
+        // Handling should help the truck recover grip, not just turn the nose faster.
+        const gripSpeed = 10 + this.topSpeed * 0.095 + this.handling * 14;
         const absSpeed = Math.abs(this.speed);
-        const speedRatio = absSpeed / Math.max(gripSpeed, 1);
+        const speedRatio = (absSpeed / Math.max(gripSpeed, 1)) * 1.24;
 
         if (absSpeed > 5 && (this.vx !== 0 || this.vy !== 0)) {
             // Current velocity direction
@@ -238,13 +236,15 @@ class BaseTruck extends Phaser.GameObjects.Container {
             while (rawSlip > Math.PI) rawSlip -= Math.PI * 2;
             while (rawSlip < -Math.PI) rawSlip += Math.PI * 2;
 
-            // How much the tires can correct per frame depends on speed vs grip
-            // Oversteer: tires lose grip progressively past gripSpeed
-            const tireGrip = Math.max(0.05, 1.0 - (speedRatio - 1.0) * 0.6);
-            const correctionRate = Phaser.Math.Clamp(tireGrip, 0.05, 1.0);
+            // Higher handling increases how quickly the tire model pulls velocity back
+            // toward the current heading once slip has started.
+            const handlingNorm = Phaser.Math.Clamp(this.handling / 3.0, 0.4, 1.7);
+            const tireGrip = Math.max(0.08, 1.0 - (speedRatio - 1.0) * (0.62 - handlingNorm * 0.06));
+            const correctionRate = Phaser.Math.Clamp(tireGrip + handlingNorm * 0.05, 0.10, 1.0);
+            const slipRetention = Phaser.Math.Clamp(1.12 - handlingNorm * 0.14, 0.78, 1.05);
 
             // Blend slip toward zero (tires trying to re-align velocity with heading)
-            this.slipAngle = rawSlip * (1.0 - correctionRate);
+            this.slipAngle = rawSlip * (1.0 - correctionRate) * slipRetention;
 
             // Speed loss from sliding (tire scrub friction)
             const slipMag = Math.abs(this.slipAngle);

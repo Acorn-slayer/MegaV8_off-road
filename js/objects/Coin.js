@@ -15,18 +15,7 @@ class Coin extends Phaser.GameObjects.Container {
         this.add(this.gfx);
         this.draw();
 
-        // Bobbing animation
-        scene.tweens.add({
-            targets: this,
-            scaleX: 0.8,
-            scaleY: 0.8,
-            duration: 400,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        this.radius = 10; // pickup radius for collision
+        this.radius = type === 'nitro' ? 10 : 9; // slightly forgiving, not vacuum-like
     }
 
     draw() {
@@ -34,21 +23,21 @@ class Coin extends Phaser.GameObjects.Container {
         if (this.type === 'money') {
             // Gold coin
             this.gfx.fillStyle(0xffcc00, 1);
-            this.gfx.fillCircle(0, 0, 8);
+            this.gfx.fillCircle(0, 0, 6.5);
             this.gfx.fillStyle(0xffaa00, 1);
-            this.gfx.fillCircle(0, 0, 5);
+            this.gfx.fillCircle(0, 0, 4);
             this.gfx.fillStyle(0xffcc00, 1);
-            this.gfx.fillCircle(-1, -1, 3);
+            this.gfx.fillCircle(-1, -1, 2.5);
         } else {
             // Nitro canister — blue
             this.gfx.fillStyle(0x00aaff, 1);
-            this.gfx.fillRoundedRect(-6, -8, 12, 16, 3);
+            this.gfx.fillRoundedRect(-5, -7, 10, 14, 3);
             this.gfx.fillStyle(0x00ddff, 1);
-            this.gfx.fillRect(-3, -6, 6, 4);
+            this.gfx.fillRect(-2.5, -5, 5, 3.5);
             // "N" label
             this.gfx.fillStyle(0xffffff, 1);
-            this.gfx.fillRect(-2, -2, 1, 6);
-            this.gfx.fillRect(1, -2, 1, 6);
+            this.gfx.fillRect(-1.5, -2, 1, 5);
+            this.gfx.fillRect(0.5, -2, 1, 5);
         }
     }
 
@@ -58,7 +47,8 @@ class Coin extends Phaser.GameObjects.Container {
         const dx = this.x - truck.x;
         const dy = this.y - truck.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < this.radius + 10) {
+        const truckRadius = Math.max((truck.truckWidth || 10), (truck.truckHeight || 18)) * 0.42;
+        if (dist < this.radius + truckRadius) {
             this.collect();
             return true;
         }

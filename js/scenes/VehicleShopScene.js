@@ -13,7 +13,7 @@ class VehicleShopScene extends Phaser.Scene {
             color: '#ffcc00', stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
-        this.add.text(640, 52, 'Each vehicle costs $5 000. You start with $5 000 — buy your first one!', {
+        this.add.text(640, 52, 'Regular trucks: $5 000. Specials: bike $10k, F1 $20k, tank $30k.', {
             fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#aaaaaa'
         }).setOrigin(0.5);
 
@@ -25,7 +25,12 @@ class VehicleShopScene extends Phaser.Scene {
         // All vehicles in a 3-column grid
         const allItems = Object.entries(GameState.truckPresets).map(([key, preset]) => ({
             color: Number(key), preset, owned: GameState.isVehicleUnlocked(Number(key))
-        }));
+        })).sort((a, b) => {
+            const pa = a.preset.price || 0;
+            const pb = b.preset.price || 0;
+            if (pa !== pb) return pa - pb;
+            return a.preset.name.localeCompare(b.preset.name);
+        });
 
         const cols = 3;
         const cardW = 235, cardH = 195, gapX = 18, gapY = 14;
@@ -40,6 +45,28 @@ class VehicleShopScene extends Phaser.Scene {
             const y = startY + row * (cardH + gapY);
             this._drawVehicleCard(allItems[i], x, y, cardW, cardH);
         }
+
+        // Back button (visible alternative to ESC)
+        const backBg = this.add.graphics();
+        backBg.fillStyle(0x0f3460, 1);
+        backBg.fillRoundedRect(500, 674, 280, 28, 8);
+        const backLabel = this.add.text(640, 688, '◄ BACK TO RACE MENU', {
+            fontSize: '10px', fontFamily: "'Press Start 2P', cursive", color: '#ffffff'
+        }).setOrigin(0.5);
+        const backZone = this.add.zone(640, 688, 280, 28).setInteractive({ useHandCursor: true });
+        backZone.on('pointerover', () => {
+            backBg.clear();
+            backBg.fillStyle(0x1a5276, 1);
+            backBg.fillRoundedRect(500, 674, 280, 28, 8);
+        });
+        backZone.on('pointerout', () => {
+            backBg.clear();
+            backBg.fillStyle(0x0f3460, 1);
+            backBg.fillRoundedRect(500, 674, 280, 28, 8);
+        });
+        backZone.on('pointerdown', () => {
+            this.scene.start(GameState.previousScene || 'ShopScene');
+        });
 
         this.add.text(640, 706, 'ESC = Back', {
             fontSize: '9px', fontFamily: "'Press Start 2P', cursive", color: '#555555'

@@ -46,7 +46,15 @@ class ShopScene extends Phaser.Scene {
 
         const owned = Object.keys(GameState.purchasedVehicles)
             .map(Number)
-            .filter(color => GameState.purchasedVehicles[color]);
+            .filter(color => GameState.purchasedVehicles[color])
+            .sort((a, b) => {
+                const pa = (GameState.truckPresets[a] && GameState.truckPresets[a].price) || 0;
+                const pb = (GameState.truckPresets[b] && GameState.truckPresets[b].price) || 0;
+                if (pa !== pb) return pa - pb;
+                const na = (GameState.truckPresets[a] && GameState.truckPresets[a].name) || '';
+                const nb = (GameState.truckPresets[b] && GameState.truckPresets[b].name) || '';
+                return na.localeCompare(nb);
+            });
         const cardW = 140;
         const cardH = 110;
         const gap = 10;

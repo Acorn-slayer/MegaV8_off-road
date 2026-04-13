@@ -5,6 +5,7 @@ class SoundFX {
         this.ctx = null;
         this.engineNode = null;
         this.engineGain = null;
+        this.engineFilter = null;
         this.enabled = false;
         this.musicPlaying = false;
         this._musicTimeout = null;
@@ -183,14 +184,18 @@ class SoundFX {
 
             this.engineGain = ctx.createGain();
             this.engineGain.gain.value = 0.3;
-            this.engineGain.connect(ctx.destination);
+            this.engineFilter = ctx.createBiquadFilter();
+            this.engineFilter.type = 'lowpass';
+            this.engineFilter.frequency.value = 2200;
+            this.engineFilter.Q.value = 0.8;
+            this.engineFilter.connect(this.engineGain).connect(ctx.destination);
 
             // Create looping buffer source
             this.engineNode = ctx.createBufferSource();
             this.engineNode.buffer = this.engineBuffer;
             this.engineNode.loop = true;
             this.engineNode.playbackRate.value = 0.8; // idle pitch
-            this.engineNode.connect(this.engineGain);
+            this.engineNode.connect(this.engineFilter);
             this.engineNode.start();
             console.log('SoundFX: V8 sample engine started');
         } catch (e) {
@@ -199,24 +204,25 @@ class SoundFX {
         }
     }
 
-    updateEngine(speed, topSpeed, upgradeRatio) {
+    updateEngine(speed, topSpeed, upgradeRatio, vehicleType = 'truck') {
         if (!this.engineNode || !this.engineGain) return;
         const ratio = Math.abs(speed) / topSpeed;
+        const isF1 = vehicleType === 'f1';
 
         // ── 5-speed gearbox simulation ─────────────────────────
         // Each gear covers a speed range. RPM climbs within gear, drops on shift.
-        const numGears = 3;
+        const numGears = isF1 ? 5 : 3;
         const gearRatio = ratio * numGears;          // 0→5 across speed range
-        const gear = Math.min(Math.floor(gearRatio), numGears - 1); // 0-4
+        const gear = Math.min(Math.floor(gearRatio), numGears - 1);
         const inGear = gearRatio - gear;             // 0→1 within current gear
 
         // RPM within gear: subtle pitch shift, more volume-driven
         // Tight pitch range keeps the sound natural (no chipmunk effect)
-        const lowRPM  = 0.4 + upgradeRatio * 0.05;   // idle pitch
-        const highRPM = 3 + upgradeRatio * 0.2;     // redline pitch
+        const lowRPM  = (isF1 ? 0.7 : 0.4) + upgradeRatio * (isF1 ? 0.07 : 0.05);
+        const highRPM = (isF1 ? 4.4 : 3.0) + upgradeRatio * (isF1 ? 0.28 : 0.2);
 
         // Each higher gear starts at a slightly higher base pitch
-        const gearBase = lowRPM + (gear / numGears) * (highRPM - lowRPM) * 0.5;
+        const gearBase = lowRPM + (gear / numGears) * (highRPM - lowRPM) * (isF1 ? 0.72 : 0.5);
         const gearTop  = gearBase + (highRPM - lowRPM) / numGears;
 
         // RPM sweeps from gearBase to gearTop within current gear
@@ -230,8 +236,15 @@ class SoundFX {
         this._lastGear = gear;
 
         // Volume does the heavy lifting for RPM feel
-        const baseVol = 0.10 + upgradeRatio * 0.05;
-        this.engineGain.gain.value = baseVol + ratio * (0.60 + upgradeRatio * 0.1);
+        const baseVol = (isF1 ? 0.08 : 0.10) + upgradeRatio * 0.05;
+        this.engineGain.gain.value = baseVol + ratio * (isF1 ? 0.72 : 0.60) + (isF1 ? 0.04 : 0);
+        if (this.engineFilter) {
+            this.engineFilter.type = isF1 ? 'highpass' : 'lowpass';
+            this.engineFilter.frequency.value = isF1
+                ? 650 + ratio * 2200
+                : 1800 + ratio * 900;
+            this.engineFilter.Q.value = isF1 ? 0.95 : 0.8;
+        }
 
         // Update music tempo (disabled – constant tempo sounds better)
         // this.musicSpeedRatio = ratio;
@@ -265,6 +278,7 @@ class SoundFX {
         }
         this.engineNode = null;
         this.engineGain = null;
+        this.engineFilter = null;
         this.engineBuffer = null;
     }
 

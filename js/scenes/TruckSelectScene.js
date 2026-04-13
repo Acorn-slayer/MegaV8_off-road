@@ -20,7 +20,15 @@ class TruckSelectScene extends Phaser.Scene {
 
         const presets = GameState.truckPresets;
         // Only show owned vehicles
-        const colors = Object.keys(presets).map(Number).filter(c => GameState.isVehicleUnlocked(c));
+        const colors = Object.keys(presets)
+            .map(Number)
+            .filter(c => GameState.isVehicleUnlocked(c))
+            .sort((a, b) => {
+                const pa = presets[a].price || 0;
+                const pb = presets[b].price || 0;
+                if (pa !== pb) return pa - pb;
+                return presets[a].name.localeCompare(presets[b].name);
+            });
 
         if (colors.length === 0) {
             // No vehicles at all — send to shop

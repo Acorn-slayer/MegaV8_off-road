@@ -83,6 +83,21 @@ class TrackSelectScene extends Phaser.Scene {
             this.scene.start('ShopScene');
         });
 
+        // Vehicle shop button (right under Garage)
+        const vehicleShopBtn = this.add.text(1260, 66, '🛒 VEHICLE SHOP', {
+            fontSize: '10px',
+            fontFamily: "'Press Start 2P', cursive",
+            color: '#ffcc00',
+            backgroundColor: '#0f3460',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        vehicleShopBtn.on('pointerover', () => vehicleShopBtn.setStyle({ backgroundColor: '#1a5276' }));
+        vehicleShopBtn.on('pointerout', () => vehicleShopBtn.setStyle({ backgroundColor: '#0f3460' }));
+        vehicleShopBtn.on('pointerdown', () => {
+            GameState.previousScene = 'TrackSelectScene';
+            this.scene.start('VehicleShopScene');
+        });
+
         // Save game button (top left, below player name)
         this.add.text(20, 15, GameState.playerName, {
             fontSize: '12px',

@@ -5,7 +5,7 @@
   "startAngle": 18,
   "trackWidth": 40,
   "lapCount": 3,
-  "truckScale": 1,
+  "truckScale": 0.5,
   "walls": "none",
   "colors": {
     "bg": 3811866,

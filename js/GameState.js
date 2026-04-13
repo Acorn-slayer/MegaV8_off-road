@@ -17,18 +17,18 @@ const GameState = {
     championshipPoints: { player: 0, ai: [0, 0, 0] },
     purchasedVehicles: {},
 
-    // Truck color presets — each has different base stat strengths
-    // ALL vehicles cost $5 000. Player starts with $5 000 to buy their first.
+    // Truck color presets — each has different base stat strengths.
+    // Regular trucks start at $5 000. Special vehicles are more expensive.
     truckPresets: {
-        0xff0000: { name: 'Red Fury',     topSpeed: 200, acceleration: 150, handling: 3.0, nitro: 5, price: 5000 },
-        0x3388ff: { name: 'Blue Thunder',  topSpeed: 185, acceleration: 160, handling: 3.2, nitro: 6, price: 5000 },
-        0xffcc00: { name: 'Gold Rush',     topSpeed: 210, acceleration: 140, handling: 2.8, nitro: 5, price: 5000 },
-        0x33cc33: { name: 'Green Machine', topSpeed: 190, acceleration: 145, handling: 3.4, nitro: 5, price: 5000 },
-        0xff66cc: { name: 'Pink Rocket',   topSpeed: 220, acceleration: 135, handling: 2.6, nitro: 4, price: 5000 },
-        0xff8800: { name: 'Orange Blaze',  topSpeed: 195, acceleration: 155, handling: 2.9, nitro: 7, price: 5000 },
-        0x000000: { name: 'Night Rider',   topSpeed: 225, acceleration: 170, handling: 3.8, nitro: 6, type: 'bike', price: 5000 },
-        0xcc0000: { name: 'F1 Viper',      topSpeed: 260, acceleration: 180, handling: 4.2, nitro: 3, type: 'f1',   price: 5000 },
-        0x556B2F: { name: 'Iron Beast',    topSpeed:  90, acceleration:  60, handling: 2.5, nitro: 2, type: 'tank', price: 5000 },
+        0xff0000: { name: 'Red Fury',     topSpeed: 211, acceleration: 158, handling: 2.85, nitro: 5, type: 'truck', price: 5000 },
+        0x3388ff: { name: 'Blue Thunder',  topSpeed: 197, acceleration: 169, handling: 3.05, nitro: 5, type: 'truck', price: 5000 },
+        0xffcc00: { name: 'Gold Rush',     topSpeed: 223, acceleration: 149, handling: 2.65, nitro: 4, type: 'truck', price: 5000 },
+        0x33cc33: { name: 'Green Machine', topSpeed: 202, acceleration: 154, handling: 3.25, nitro: 4, type: 'truck', price: 5000 },
+        0xff66cc: { name: 'Pink Rocket',   topSpeed: 234, acceleration: 143, handling: 2.45, nitro: 3, type: 'truck', price: 5000 },
+        0xff8800: { name: 'Orange Blaze',  topSpeed: 208, acceleration: 165, handling: 2.75, nitro: 6, type: 'truck', price: 5000 },
+        0x000000: { name: 'Night Rider',   topSpeed: 237, acceleration: 178, handling: 3.6, nitro: 5, type: 'bike',  price: 10000 },
+        0xcc0000: { name: 'F1 Viper',      topSpeed: 273, acceleration: 225, handling: 4.0, nitro: 3, type: 'f1',    price: 20000 },
+        0x556B2F: { name: 'Iron Beast',    topSpeed:  97, acceleration:  64, handling: 2.4, nitro: 2, type: 'tank',  price: 30000 },
     },
 
     // Per-vehicle upgrade levels — { [colorKey]: { topSpeed, acceleration, handling, nitro } }
@@ -36,8 +36,8 @@ const GameState = {
 
     // Per-level bonus (applied on top of truck preset base stats)
     perLevel: {
-        topSpeed:     12,
-        acceleration: 10,
+        topSpeed:     13,
+        acceleration: 11,
         handling:     0.20,
         nitro:        0.8,
     },
