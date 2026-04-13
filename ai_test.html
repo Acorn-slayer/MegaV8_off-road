@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Track Test</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0c1117;
+            --panel: rgba(15, 22, 31, 0.92);
+            --line: rgba(255, 255, 255, 0.12);
+            --text: #f2f6fb;
+            --muted: #97a6ba;
+            --accent: #3ea6ff;
+            --accent-2: #6fe3a7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(62, 166, 255, 0.18), transparent 32%),
+                radial-gradient(circle at top right, rgba(111, 227, 167, 0.14), transparent 28%),
+                var(--bg);
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: minmax(280px, 340px) 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            padding: 18px;
+            border-right: 1px solid var(--line);
+            background: var(--panel);
+            backdrop-filter: blur(8px);
+        }
+
+        .title {
+            margin: 0 0 8px;
+            font-size: 24px;
+            letter-spacing: 0.02em;
+        }
+
+        .subtitle {
+            margin: 0 0 18px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        select, button {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            font: inherit;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        button {
+            cursor: pointer;
+            background: linear-gradient(180deg, rgba(62,166,255,0.26), rgba(62,166,255,0.1));
+        }
+
+        .hint {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .meta .cell {
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .meta .k {
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .meta .v {
+            margin-top: 6px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .board {
+            display: grid;
+            gap: 8px;
+        }
+
+        .row {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+        }
+
+        .row.selected {
+            border-color: rgba(62, 166, 255, 0.85);
+            background: rgba(62, 166, 255, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(62, 166, 255, 0.25);
+        }
+
+        .row strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .row span {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        #game-wrap {
+            position: relative;
+            min-height: 100vh;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .overlay-note {
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(10, 16, 24, 0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--muted);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        @media (max-width: 980px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--line);
+            }
+
+            #game-container {
+                height: 70vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <h1 class="title">AI Track Test</h1>
+            <p class="subtitle">AI-only sandbox for observing overtakes, wall recovery, and stuck detection. All trucks get +5 upgrades to speed, acceleration, handling, and nitro. No AI race penalty is applied.</p>
+
+            <div class="stack">
+                <div class="card">
+                    <label for="track-select">Track</label>
+                    <select id="track-select"></select>
+                    <button id="reload-btn" type="button" style="margin-top: 10px;">Reload Track</button>
+                    <p class="hint">Serve this folder through a local web server so `fetch()` can load track descriptor JSON files.</p>
+                </div>
+
+                <div class="card">
+                    <div class="meta">
+                        <div class="cell">
+                            <div class="k">Leader</div>
+                            <div class="v" id="leader-name">-</div>
+                        </div>
+                        <div class="cell">
+                            <div class="k">Lap</div>
+                            <div class="v" id="leader-lap">-</div>
+                        </div>
+                        <div class="cell">
+                            <div class="k">Track</div>
+                            <div class="v" id="track-name">-</div>
+                        </div>
+                        <div class="cell">
+                            <div class="k">Time</div>
+                            <div class="v" id="race-time">0.0s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <label>AI Board</label>
+                    <div id="board" class="board"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main id="game-wrap">
+            <div id="game-container"></div>
+            <div class="overlay-note">Camera follows the leader. Use this to watch state changes like overtaking and stuck recovery.</div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="js/GameState.js"></script>
+    <script src="js/tracks/TrackBuilder.js"></script>
+    <script src="js/objects/BaseTruck.js"></script>
+    <script src="js/objects/AiTruck.js"></script>
+    <script>
+        const boardEl = document.getElementById('board');
+        const leaderNameEl = document.getElementById('leader-name');
+        const leaderLapEl = document.getElementById('leader-lap');
+        const trackNameEl = document.getElementById('track-name');
+        const raceTimeEl = document.getElementById('race-time');
+        const trackSelectEl = document.getElementById('track-select');
+        const reloadBtn = document.getElementById('reload-btn');
+
+        async function populateTrackOptions() {
+            const response = await fetch(`tracks_descriptor/manifest.json?t=${Date.now()}`);
+            if (!response.ok) throw new Error('Failed to load track manifest');
+            const manifest = await response.json();
+            const files = Array.isArray(manifest) ? manifest : (manifest.tracks || []);
+            const preferred = ['city_block.json', 'blob.json'];
+            const ordered = [...preferred.filter(file => files.includes(file)), ...files.filter(file => !preferred.includes(file))];
+            trackSelectEl.innerHTML = ordered.map(file => {
+                const label = file.replace('.json', '').replace(/_/g, ' ');
+                return `<option value="${file}">${label}</option>`;
+            }).join('');
+            trackSelectEl.value = ordered[0] || 'city_block.json';
+        }
+
+        class AiTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'AiTestScene' });
+            }
+
+            init(data) {
+                this.trackFile = data.trackFile || trackSelectEl.value || 'city_block.json';
+                this.ready = false;
+            }
+
+            async create() {
+                this.raceTime = 0;
+                this.aiTrucks = [];
+                this.allTrucks = [];
+                this.countdownActive = true;
+                this.countdownText = null;
+                this.selectedCameraTruckId = null;
+                await this.loadTrack(this.trackFile);
+                this.ready = true;
+            }
+
+            async loadTrack(trackFile) {
+                const response = await fetch(`tracks_descriptor/${trackFile}?t=${Date.now()}`);
+                if (!response.ok) throw new Error(`Failed to load ${trackFile}`);
+                const def = await response.json();
+
+                this.track = TrackBuilder.build(def);
+                TrackBuilder.centerTrack(this.track, 3200, 1800, 100, 100);
+                this.totalLaps = this.track.lapCount || 3;
+
+                this.drawBackground();
+                this.drawTrack();
+                this.drawWalls();
+                this.drawStartLine();
+
+                this.spawnAiGrid();
+
+                this.cameras.main.setBounds(0, 0, this.track.worldW, this.track.worldH);
+                this.cameras.main.stopFollow();
+                const zoom = Phaser.Math.Clamp((this.track.zoomTargetPx || 100) / Math.max(this.track.trackWidth || 70, 1), 0.45, 2.2);
+                this.cameras.main.setZoom(zoom);
+
+                this.countdownText = this.add.text(640, 90, 'READY', {
+                    fontSize: '44px',
+                    fontFamily: 'Arial Black, Arial, sans-serif',
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 8,
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20);
+
+                this.time.delayedCall(900, () => {
+                    if (this.countdownText) this.countdownText.setText('SET');
+                });
+                this.time.delayedCall(1800, () => {
+                    if (this.countdownText) this.countdownText.setText('GO');
+                    this.countdownActive = false;
+                });
+                this.time.delayedCall(2600, () => {
+                    if (this.countdownText) {
+                        this.countdownText.destroy();
+                        this.countdownText = null;
+                    }
+                });
+
+                trackNameEl.textContent = def.name || trackFile;
+                this.updateBoard();
+                const initialTruck = this.aiTrucks[0] || null;
+                if (initialTruck) {
+                    this.setCameraTarget(initialTruck.truckId);
+                }
+            }
+
+            spawnAiGrid() {
+                const startWp = this.track.waypoints[this.track.startLineIndex];
+                const truckScale = this.track.truckScale || 1;
+                const nextWp = this.track.waypoints[(this.track.startLineIndex + 1) % this.track.waypoints.length];
+                const startAngle = Math.atan2(nextWp[1] - startWp[1], nextWp[0] - startWp[0]);
+                const fwdX = Math.cos(startAngle), fwdY = Math.sin(startAngle);
+                const perpX = -Math.sin(startAngle), perpY = Math.cos(startAngle);
+                const rowSpacing = 32 * truckScale;
+                const laneSpacing = 24 * truckScale;
+                const slots = [
+                    { rowsBack: 1, side: -0.5 },
+                    { rowsBack: 1, side: 0.5 },
+                    { rowsBack: 2, side: -0.5 },
+                    { rowsBack: 2, side: 0.5 },
+                ];
+                const configs = [
+                    { name: 'Blue', color: 0x3388ff, difficulty: 'easy' },
+                    { name: 'Gold', color: 0xffcc00, difficulty: 'medium' },
+                    { name: 'Green', color: 0x33cc33, difficulty: 'hard' },
+                    { name: 'Pink', color: 0xff66cc, difficulty: 'hard' },
+                ];
+
+                for (let i = 0; i < configs.length; i++) {
+                    const slot = slots[i];
+                    const cfg = configs[i];
+                    const x = startWp[0] - fwdX * slot.rowsBack * rowSpacing + perpX * slot.side * laneSpacing;
+                    const y = startWp[1] - fwdY * slot.rowsBack * rowSpacing + perpY * slot.side * laneSpacing;
+                    const ai = new AiTruck(this, x, y, cfg.color, cfg.difficulty);
+                    ai.setDepth(8);
+                    ai.aiName = cfg.name;
+                    ai.angle = startAngle;
+                    ai.nitroFuel = ai.nitroMax = 3 + GameState.perLevel.nitro * 5;
+                    ai.topSpeed += GameState.perLevel.topSpeed * 5;
+                    ai.acceleration += GameState.perLevel.acceleration * 5;
+                    ai.handling += GameState.perLevel.handling * 5;
+                    ai.setTruckScale(truckScale);
+                    ai.truckGraphics.rotation = ai.angle + Math.PI / 2;
+                    this.aiTrucks.push(ai);
+                }
+
+                this.allTrucks = [...this.aiTrucks];
+            }
+
+            drawBackground() {
+                this.cameras.main.setBackgroundColor(this.track.bgColor || 0x223344);
+                const gfx = this.add.graphics();
+                gfx.fillStyle(this.track.grassColor || 0x3c6d2f, 1);
+                gfx.fillRect(0, 0, this.track.worldW, this.track.worldH);
+                gfx.setDepth(0);
+            }
+
+            drawTrack() {
+                const { waypoints, trackWidth, borderColor, trackColor } = this.track;
+                const len = waypoints.length;
+                const borderW = trackWidth + 12;
+
+                const gfx = this.add.graphics();
+                gfx.lineStyle(borderW, borderColor, 1);
+                gfx.beginPath();
+                gfx.moveTo(waypoints[0][0], waypoints[0][1]);
+                for (let i = 1; i < len; i++) gfx.lineTo(waypoints[i][0], waypoints[i][1]);
+                gfx.closePath();
+                gfx.strokePath();
+
+                gfx.lineStyle(trackWidth, trackColor, 1);
+                gfx.beginPath();
+                gfx.moveTo(waypoints[0][0], waypoints[0][1]);
+                for (let i = 1; i < len; i++) gfx.lineTo(waypoints[i][0], waypoints[i][1]);
+                gfx.closePath();
+                gfx.strokePath();
+                gfx.setDepth(1);
+            }
+
+            drawWalls() {
+                const walls = this.track.walls;
+                if (!walls || walls.length === 0) return;
+
+                const gfx = this.add.graphics();
+                gfx.lineStyle(this.track.wallWidth || 4, this.track.wallColor || 0xffffff, 0.9);
+                for (const wall of walls) {
+                    gfx.beginPath();
+                    gfx.moveTo(wall[0], wall[1]);
+                    gfx.lineTo(wall[2], wall[3]);
+                    gfx.strokePath();
+                }
+                gfx.setDepth(2);
+            }
+
+            drawStartLine() {
+                const { waypoints, startLineIndex, trackWidth } = this.track;
+                const len = waypoints.length;
+                const idx = startLineIndex;
+                const prev = waypoints[(idx - 1 + len) % len];
+                const curr = waypoints[idx];
+                const next = waypoints[(idx + 1) % len];
+                const dx = next[0] - prev[0];
+                const dy = next[1] - prev[1];
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const nx = -dy / dist;
+                const ny = dx / dist;
+                const hw = trackWidth / 2;
+                const startX = curr[0] + nx * hw;
+                const startY = curr[1] + ny * hw;
+                const endX = curr[0] - nx * hw;
+                const endY = curr[1] - ny * hw;
+                const squares = 8;
+                const squareSize = Math.max(6, Math.round(trackWidth / 10));
+                const pdx = dx / dist;
+                const pdy = dy / dist;
+                const gfx = this.add.graphics().setDepth(3);
+
+                for (let row = 0; row < 2; row++) {
+                    for (let s = 0; s < squares; s++) {
+                        const t = s / squares;
+                        const x = startX + (endX - startX) * t;
+                        const y = startY + (endY - startY) * t;
+                        const color = (s + row) % 2 === 0 ? 0xffffff : 0x000000;
+                        gfx.fillStyle(color, 1);
+                        gfx.fillRect(
+                            x + pdx * row * squareSize - squareSize / 2,
+                            y + pdy * row * squareSize - squareSize / 2,
+                            squareSize,
+                            squareSize
+                        );
+                    }
+                }
+            }
+
+            update(_time, delta) {
+                if (!this.ready) return;
+
+                this.sanitizeAiPositions();
+
+                if (!this.countdownActive) {
+                    this.raceTime += delta / 1000;
+                }
+
+                if (this.countdownActive) {
+                    this.updateBoard();
+                    return;
+                }
+
+                for (const ai of this.aiTrucks) {
+                    ai.update(delta, this.track.waypoints, this.allTrucks);
+                }
+
+                this.handleTruckCollisions();
+                this.handleWallCollisions();
+                this.handleOffTrackRespawns(delta / 1000);
+                this.updateCameraTarget();
+                this.updateBoard();
+            }
+
+            setCameraTarget(truckId) {
+                this.selectedCameraTruckId = truckId;
+                this.updateCameraTarget();
+                this.updateBoard();
+            }
+
+            updateCameraTarget() {
+                const ordered = this.aiTrucks.slice().sort((a, b) => b.totalProgress - a.totalProgress);
+                const fallback = ordered[0] || null;
+                const target = this.aiTrucks.find(ai => ai.truckId === this.selectedCameraTruckId) || fallback;
+                if (!target) return;
+                if (this.selectedCameraTruckId !== target.truckId) {
+                    this.selectedCameraTruckId = target.truckId;
+                }
+
+                if (!Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+                    this.respawnAi(target);
+                    return;
+                }
+
+                const cam = this.cameras.main;
+                const halfW = cam.width / Math.max(cam.zoom, 0.0001) / 2;
+                const halfH = cam.height / Math.max(cam.zoom, 0.0001) / 2;
+                const cx = Phaser.Math.Clamp(target.x, halfW, this.track.worldW - halfW);
+                const cy = Phaser.Math.Clamp(target.y, halfH, this.track.worldH - halfH);
+                cam.centerOn(cx, cy);
+            }
+
+            sanitizeAiPositions() {
+                for (const ai of this.aiTrucks) {
+                    if (!Number.isFinite(ai.x) || !Number.isFinite(ai.y) || !Number.isFinite(ai.angle) || !Number.isFinite(ai.speed)) {
+                        this.respawnAi(ai);
+                    }
+                }
+            }
+
+            updateBoard() {
+                const ordered = this.aiTrucks.slice().sort((a, b) => b.totalProgress - a.totalProgress);
+                const leader = ordered[0];
+                if (leader) {
+                    leaderNameEl.textContent = leader.aiName;
+                    leaderLapEl.textContent = `${Math.min(leader.lapsCompleted + 1, this.totalLaps)} / ${this.totalLaps}`;
+                }
+                raceTimeEl.textContent = `${this.raceTime.toFixed(1)}s`;
+
+                boardEl.innerHTML = ordered.map((ai, index) => {
+                    const speed = Math.round(Math.abs(ai.speed));
+                    const lap = Math.min(ai.lapsCompleted + 1, this.totalLaps);
+                    const target = ai.aiStateTargetId ? ` | target ${ai.aiStateTargetId}` : '';
+                    const selected = ai.truckId === this.selectedCameraTruckId ? ' selected' : '';
+                    return `<div class="row${selected}" data-truck-id="${ai.truckId}">
+                        <strong>${index + 1}. ${ai.aiName}</strong>
+                        <span>lap ${lap}/${this.totalLaps} | speed ${speed} | progress ${ai.totalProgress.toFixed ? ai.totalProgress.toFixed(0) : ai.totalProgress}</span>
+                        <span>state ${ai.aiState}${target}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            handleOffTrackRespawns(dt) {
+                for (const ai of this.aiTrucks) {
+                    if (!ai.onTrack) {
+                        ai._offTrackTime = (ai._offTrackTime || 0) + dt;
+                        if (ai._offTrackTime >= 1.8) {
+                            this.respawnAi(ai);
+                        }
+                    } else {
+                        ai._offTrackTime = 0;
+                    }
+                }
+            }
+
+            handleTruckCollisions() {
+                const trucks = this.allTrucks;
+                for (let i = 0; i < trucks.length; i++) {
+                    for (let j = i + 1; j < trucks.length; j++) {
+                        const a = trucks[i];
+                        const b = trucks[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const aRadius = Math.max(a.truckWidth || 10, a.truckHeight || 18) * 0.55;
+                        const bRadius = Math.max(b.truckWidth || 10, b.truckHeight || 18) * 0.55;
+                        const minDist = aRadius + bRadius;
+                        if (dist <= 0 || dist >= minDist) continue;
+
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        const overlap = minDist - dist;
+                        a.x -= nx * overlap * 0.5;
+                        a.y -= ny * overlap * 0.5;
+                        b.x += nx * overlap * 0.5;
+                        b.y += ny * overlap * 0.5;
+                        a.speed *= 0.985;
+                        b.speed *= 0.985;
+                    }
+                }
+            }
+
+            handleWallCollisions() {
+                const walls = this.track.walls;
+                if (!walls || walls.length === 0) return;
+                const truckScale = this.track.truckScale || 1;
+                const wallWidth = (this.track.wallWidth || 6) / 2 + 6 * truckScale;
+
+                for (const truck of this.allTrucks) {
+                    truck._wallHitCount = truck._wallHitCount || 0;
+                    truck._wallHitTimer = truck._wallHitTimer || 0;
+                    truck._wallHitTimer += this.game.loop.delta / 1000;
+                    if (truck._wallHitTimer > 0.3) truck._wallHitCount = 0;
+
+                    let hitWall = false;
+                    for (const wall of walls) {
+                        const wx = wall[2] - wall[0];
+                        const wy = wall[3] - wall[1];
+                        const len2 = wx * wx + wy * wy;
+                        if (len2 === 0) continue;
+
+                        let t = ((truck.x - wall[0]) * wx + (truck.y - wall[1]) * wy) / len2;
+                        t = Math.max(0, Math.min(1, t));
+                        const closestX = wall[0] + t * wx;
+                        const closestY = wall[1] + t * wy;
+                        const dx = truck.x - closestX;
+                        const dy = truck.y - closestY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist <= 0 || dist >= wallWidth) continue;
+
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        const push = wallWidth - dist + 2;
+                        truck.x += nx * push;
+                        truck.y += ny * push;
+
+                        const dot = truck.vx * nx + truck.vy * ny;
+                        if (dot < 0) {
+                            truck.speed *= truck._wallHitCount >= 3 ? 0.8 : 0.9;
+                            const wallAngle = Math.atan2(wy, wx);
+                            let targetAngle = wallAngle;
+                            const alt = wallAngle + Math.PI;
+                            if (Math.abs(Phaser.Math.Angle.Wrap(alt - truck.angle)) < Math.abs(Phaser.Math.Angle.Wrap(wallAngle - truck.angle))) {
+                                targetAngle = alt;
+                            }
+                            truck.angle = Phaser.Math.Angle.Wrap(truck.angle + Phaser.Math.Angle.Wrap(targetAngle - truck.angle) * 0.4);
+                        }
+                        hitWall = true;
+                    }
+
+                    if (hitWall) {
+                        truck._wallHitCount++;
+                        truck._wallHitTimer = 0;
+                        const recoveryHeading = this._getTruckRecoveryHeading(truck, 3);
+                        const headingError = Math.abs(Phaser.Math.Angle.Wrap(truck.angle - recoveryHeading));
+                        const pushingWrongWay = headingError > Math.PI * 0.58;
+                        const stuckOnWall = truck._wallHitCount >= 4 && Math.abs(truck.speed) < Math.max(truck.topSpeed * 0.28, 42);
+                        if (truck._wallHitCount >= 5 || (truck._wallHitCount >= 3 && pushingWrongWay) || stuckOnWall) {
+                            truck.triggerWallRecovery(recoveryHeading, 'wall');
+                        }
+                    }
+                }
+            }
+
+            _getTruckRecoveryHeading(truck, lookAhead = 2) {
+                const waypoints = this.track && this.track.waypoints;
+                if (!waypoints || waypoints.length < 2) return truck.angle;
+
+                if (Number.isFinite(truck.currentWaypoint)) {
+                    const len = waypoints.length;
+                    const nextIdx = ((truck.currentWaypoint % len) + len) % len;
+                    const farIdx = (nextIdx + Math.max(1, lookAhead)) % len;
+                    const nextWp = waypoints[nextIdx];
+                    const farWp = waypoints[farIdx];
+                    const toNextX = nextWp[0] - truck.x;
+                    const toNextY = nextWp[1] - truck.y;
+                    const aheadX = farWp[0] - nextWp[0];
+                    const aheadY = farWp[1] - nextWp[1];
+                    const dirX = toNextX + aheadX * 0.9;
+                    const dirY = toNextY + aheadY * 0.9;
+                    if (dirX !== 0 || dirY !== 0) return Math.atan2(dirY, dirX);
+                }
+
+                return truck.angle;
+            }
+
+            respawnAi(ai) {
+                const waypoints = this.track.waypoints;
+                const len = waypoints.length;
+                let bestIdx = 0;
+                let bestDist = Infinity;
+                for (let i = 0; i < len; i++) {
+                    const dx = ai.x - waypoints[i][0];
+                    const dy = ai.y - waypoints[i][1];
+                    const d = dx * dx + dy * dy;
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestIdx = i;
+                    }
+                }
+
+                ai.x = waypoints[bestIdx][0];
+                ai.y = waypoints[bestIdx][1];
+                const nextIdx = (bestIdx + 1) % len;
+                const dx = waypoints[nextIdx][0] - waypoints[bestIdx][0];
+                const dy = waypoints[nextIdx][1] - waypoints[bestIdx][1];
+                ai.angle = Math.atan2(dy, dx);
+                ai.currentWaypoint = nextIdx;
+                ai.speed = 0;
+                ai.vx = 0;
+                ai.vy = 0;
+                ai._offTrackTime = 0;
+                ai.lastProgressMetric = ai.totalProgress;
+            }
+        }
+
+        let game = null;
+
+        populateTrackOptions().then(() => {
+            game = new Phaser.Game({
+                type: Phaser.AUTO,
+                width: 1280,
+                height: 720,
+                parent: 'game-container',
+                backgroundColor: '#111820',
+                scale: {
+                    mode: Phaser.Scale.RESIZE,
+                    autoCenter: Phaser.Scale.CENTER_BOTH,
+                },
+                scene: [AiTestScene],
+                physics: { default: 'arcade' },
+            });
+        }).catch((error) => {
+            boardEl.innerHTML = `<div class="row"><strong>Manifest load failed</strong><span>${error.message}</span></div>`;
+        });
+
+        reloadBtn.addEventListener('click', () => {
+            if (!game) return;
+            game.scene.stop('AiTestScene');
+            game.scene.start('AiTestScene', { trackFile: trackSelectEl.value });
+        });
+
+        boardEl.addEventListener('click', (event) => {
+            if (!game) return;
+            const row = event.target.closest('.row[data-truck-id]');
+            if (!row) return;
+            const scene = game.scene.getScene('AiTestScene');
+            if (!scene || !scene.ready) return;
+            scene.setCameraTarget(row.dataset.truckId);
+        });
+    </script>
+</body>
+</html>

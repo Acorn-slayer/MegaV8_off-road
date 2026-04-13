@@ -6,6 +6,9 @@ class BaseTruck extends Phaser.GameObjects.Container {
         super(scene, x, y);
         scene.add.existing(this);
 
+        BaseTruck._nextTruckId = (BaseTruck._nextTruckId || 0) + 1;
+        this.truckId = `truck-${BaseTruck._nextTruckId}`;
+
         this.truckColor = color;
         this.vehicleType = vehicleType;
 
