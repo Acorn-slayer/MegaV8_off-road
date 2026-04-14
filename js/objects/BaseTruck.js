@@ -257,10 +257,13 @@ class BaseTruck extends Phaser.GameObjects.Container {
         this.speed = Phaser.Math.Clamp(this.speed, -maxSpd * 0.3, maxSpd);
 
         // ── Slip / drift physics ───────────────────────────────
-        // Handling should help the truck recover grip, not just turn the nose faster.
-        const gripSpeed = 10 + this.topSpeed * 0.095 + this.handling * 14;
+        // Per-vehicle grip personality: trucks drift, F1 grips, tank is heavy
+        const gripFactors = { truck: 0.85, bike: 0.95, f1: 1.3, tank: 0.7, jet: 1.0 };
+        const vGrip = gripFactors[this.vehicleType] || 0.85;
+
+        const gripSpeed = (10 + this.topSpeed * 0.14 + this.handling * 18) * vGrip;
         const absSpeed = Math.abs(this.speed);
-        const speedRatio = (absSpeed / Math.max(gripSpeed, 1)) * 1.24;
+        const speedRatio = (absSpeed / Math.max(gripSpeed, 1)) * 1.05;
 
         if (!isJet && absSpeed > 5 && (this.vx !== 0 || this.vy !== 0)) {
             // Current velocity direction
@@ -273,9 +276,9 @@ class BaseTruck extends Phaser.GameObjects.Container {
             // Higher handling increases how quickly the tire model pulls velocity back
             // toward the current heading once slip has started.
             const handlingNorm = Phaser.Math.Clamp(this.handling / 3.0, 0.4, 1.7);
-            const tireGrip = Math.max(0.08, 1.0 - (speedRatio - 1.0) * (0.62 - handlingNorm * 0.06));
-            const correctionRate = Phaser.Math.Clamp(tireGrip + handlingNorm * 0.05, 0.10, 1.0);
-            const slipRetention = Phaser.Math.Clamp(1.12 - handlingNorm * 0.14, 0.78, 1.05);
+            const tireGrip = Math.max(0.08, 1.0 - (speedRatio - 1.0) * (0.45 - handlingNorm * 0.08));
+            const correctionRate = Phaser.Math.Clamp(tireGrip + handlingNorm * 0.10, 0.10, 1.0);
+            const slipRetention = Phaser.Math.Clamp(1.02 - handlingNorm * 0.14, 0.68, 0.98);
 
             // Blend slip toward zero (tires trying to re-align velocity with heading)
             this.slipAngle = rawSlip * (1.0 - correctionRate) * slipRetention;

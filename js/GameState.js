@@ -250,7 +250,8 @@ const GameState = {
         if (s.championshipPoints) {
             this.championshipPoints = s.championshipPoints;
         }
-        this.musicMuted = s.musicMuted || false;
-        this.sfxMuted = s.sfxMuted || false;
+        // Preserve current mute state unless the save explicitly stored them
+        if ('musicMuted' in s) this.musicMuted = s.musicMuted;
+        if ('sfxMuted' in s) this.sfxMuted = s.sfxMuted;
     },
 };

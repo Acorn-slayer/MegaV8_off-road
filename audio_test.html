@@ -3,127 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Test</title>
+    <title>Engine Audio Bench</title>
     <style>
-        body { background: #222; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 40px; }
-        button { font-size: 20px; padding: 15px 30px; margin: 10px; cursor: pointer; border: none; border-radius: 8px; color: #fff; }
+        body { background: #1a1a1a; color: #fff; font-family: monospace; padding: 30px; }
+        h1 { color: #ffcc00; }
+        .control { margin: 20px 0; }
+        label { display: inline-block; width: 200px; font-size: 16px; }
+        input[type="range"] { width: 300px; vertical-align: middle; }
+        .value { display: inline-block; width: 80px; color: #0f0; font-size: 18px; font-weight: bold; }
+        button { font-size: 18px; padding: 12px 25px; margin: 8px; cursor: pointer; border: none; border-radius: 6px; color: #fff; }
         .init { background: #e44; }
-        .test { background: #38a; }
-        #log { text-align: left; background: #111; padding: 15px; margin: 20px auto; max-width: 600px; font-family: monospace; font-size: 14px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .play { background: #38a; }
+        .stop { background: #666; }
+        .vehicle { background: #555; }
+        .vehicle.active { background: #e90; }
+        #speedSlider { width: 500px; }
+        .info { color: #888; font-size: 13px; margin-top: 5px; }
+        hr { border-color: #333; margin: 25px 0; }
+        #log { background: #111; padding: 12px; border-radius: 6px; font-size: 13px; color: #0f0; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <h1>Web Audio Test Page</h1>
-    <p>Click Init first (must be a user gesture), then try each sound.</p>
+    <h1>Engine Audio Bench <span style="color:#888;font-size:14px" id="buildTag"></span></h1>
+    <p>Pick a vehicle, click Init Audio, adjust speed to hear the engine.</p>
 
-    <button class="init" onclick="initAudio()">1. Init AudioContext</button>
-    <br>
-    <button class="test" onclick="testTone()">Tone (440 Hz)</button>
-    <button class="test" onclick="testChirp()">Chirp</button>
-    <button class="test" onclick="testNoise()">Noise</button>
-    <button class="test" onclick="testJingle()">Mario Jingle</button>
+    <button class="init" onclick="initAudio()">Init Audio</button>
+    <button class="play" onclick="startEngine()">Start Engine</button>
+    <button class="stop" onclick="stopEngine()">Stop Engine</button>
+    <hr>
 
-    <div id="log">Click Init to start...\n</div>
+    <h2 style="color:#ffcc00;">Vehicle</h2>
+    <button class="vehicle active" onclick="selectVehicle('truck',this)">Truck</button>
+    <button class="vehicle" onclick="selectVehicle('tank',this)">Tank</button>
+    <button class="vehicle" onclick="selectVehicle('f1',this)">F1</button>
+    <button class="vehicle" onclick="selectVehicle('jet',this)">Jet</button>
+    <span class="value" id="sampleName">engine_idle.mp3</span>
+    <hr>
+
+    <div class="control">
+        <label>Simulated Speed:</label>
+        <input type="range" id="speedSlider" min="0" max="100" step="1" value="0">
+        <span class="value" id="speedVal">0%</span>
+        <div class="info">Drag to simulate driving from idle to top speed</div>
+    </div>
+
+    <div class="control">
+        <label>Upgrade Ratio:</label>
+        <input type="range" id="upgradeSlider" min="0" max="100" step="1" value="0">
+        <span class="value" id="upgradeVal">0%</span>
+    </div>
+
+    <div class="control">
+        <label>Current playback rate:</label>
+        <span class="value" id="currentRate" style="color:#ff0;">—</span>
+    </div>
+
+    <hr>
+    <h2 style="color:#ffcc00;">Log</h2>
+    <pre id="log"></pre>
 
     <script>
-        let ctx = null;
+        var BUILD = 'v8-2026-04-13';
+        document.getElementById('buildTag').textContent = BUILD;
+
+        var ctx = null;
+        var engineNode = null;
+        var engineGain = null;
+        var engineFilter = null;
+        var engineBuffer = null;
+        var bufferCache = {};
+        var currentVehicle = 'truck';
+
+        var samples = {
+            truck: 'assets/audio/engine_idle.mp3',
+            tank:  'assets/audio/engine_tank_idle.mp3',
+            f1:    'assets/audio/engine_f1_idle.mp3',
+            jet:   'assets/audio/engine_jet_idle.mp3'
+        };
 
         function log(msg) {
-            const el = document.getElementById('log');
+            var el = document.getElementById('log');
             el.textContent += msg + '\n';
             el.scrollTop = el.scrollHeight;
+            console.log('[bench]', msg);
+        }
+
+        log('Build ' + BUILD);
+
+        function selectVehicle(name, btn) {
+            currentVehicle = name;
+            var btns = document.querySelectorAll('.vehicle');
+            for (var i = 0; i < btns.length; i++) btns[i].className = 'vehicle';
+            btn.className = 'vehicle active';
+            document.getElementById('sampleName').textContent = samples[name].split('/').pop();
+            log('Selected: ' + name + ' -> ' + samples[name]);
+            if (engineNode) {
+                startEngine();
+            }
         }
 
         function initAudio() {
+            log('initAudio() called');
             try {
                 if (!ctx) {
                     ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    log('Created AudioContext, sampleRate=' + ctx.sampleRate);
+                    log('AudioContext created, sampleRate=' + ctx.sampleRate);
                 }
-                log('State before resume: ' + ctx.state);
-                ctx.resume().then(() => {
-                    log('State after resume: ' + ctx.state);
-                }).catch(e => {
-                    log('Resume failed: ' + e.message);
+                ctx.resume().then(function() {
+                    log('AudioContext resumed, state=' + ctx.state);
+                    var url = samples[currentVehicle];
+                    log('Fetching ' + url + '...');
+                    fetch(url).then(function(resp) {
+                        log('Fetch response: ' + resp.status + ' ' + resp.statusText);
+                        if (!resp.ok) { log('ERROR: fetch failed!'); return; }
+                        return resp.arrayBuffer();
+                    }).then(function(ab) {
+                        if (!ab) return;
+                        return ctx.decodeAudioData(ab);
+                    }).then(function(buf) {
+                        if (!buf) return;
+                        bufferCache[currentVehicle] = buf;
+                        engineBuffer = buf;
+                        log('Decoded OK, duration=' + buf.duration.toFixed(1) + 's');
+                        log('Auto-starting engine...');
+                        startEngine();
+                    }).catch(function(err) {
+                        log('ERROR loading sample: ' + err);
+                    });
                 });
-            } catch (e) {
-                log('ERROR creating AudioContext: ' + e.message);
+            } catch(e) {
+                log('ERROR in initAudio: ' + e);
             }
         }
 
-        function testTone() {
-            if (!ctx || ctx.state !== 'running') { log('Init first! State=' + (ctx ? ctx.state : 'null')); return; }
-            log('Playing 440 Hz tone for 0.5s...');
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = 440;
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-            osc.connect(gain).connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.5);
-            log('  ...scheduled at t=' + ctx.currentTime.toFixed(3));
-        }
+        function startEngine() {
+            if (!ctx) { log('Click Init Audio first'); return; }
+            stopEngine();
 
-        function testChirp() {
-            if (!ctx || ctx.state !== 'running') { log('Init first!'); return; }
-            log('Playing chirp...');
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(800, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-            osc.connect(gain).connect(ctx.destination);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.2);
-        }
+            var url = samples[currentVehicle];
 
-        function testNoise() {
-            if (!ctx || ctx.state !== 'running') { log('Init first!'); return; }
-            log('Playing noise burst...');
-            const bufferSize = ctx.sampleRate * 0.15;
-            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+            function doStart(buf) {
+                engineBuffer = buf;
+                engineGain = ctx.createGain();
+                engineGain.gain.value = 0.3;
+                engineFilter = ctx.createBiquadFilter();
+                engineFilter.type = 'lowpass';
+                engineFilter.frequency.value = 2200;
+                engineFilter.Q.value = 0.8;
+                engineFilter.connect(engineGain).connect(ctx.destination);
+                engineNode = ctx.createBufferSource();
+                engineNode.buffer = buf;
+                engineNode.loop = true;
+                engineNode.playbackRate.value = 0.8;
+                engineNode.connect(engineFilter);
+                engineNode.start();
+                log('Engine started: ' + currentVehicle);
             }
-            const src = ctx.createBufferSource();
-            src.buffer = buffer;
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-            src.connect(gain).connect(ctx.destination);
-            src.start();
+
+            if (bufferCache[currentVehicle]) {
+                doStart(bufferCache[currentVehicle]);
+            } else {
+                log('Loading ' + url + '...');
+                fetch(url).then(function(r) { return r.arrayBuffer(); })
+                    .then(function(ab) { return ctx.decodeAudioData(ab); })
+                    .then(function(buf) {
+                        bufferCache[currentVehicle] = buf;
+                        doStart(buf);
+                    })
+                    .catch(function(err) { log('ERROR: ' + err); });
+            }
         }
 
-        function testJingle() {
-            if (!ctx || ctx.state !== 'running') { log('Init first!'); return; }
-            log('Playing Mario jingle...');
-            const melody = [
-                { freq: 659, time: 0.00, dur: 0.10 },
-                { freq: 659, time: 0.15, dur: 0.10 },
-                { freq: 659, time: 0.40, dur: 0.10 },
-                { freq: 523, time: 0.55, dur: 0.10 },
-                { freq: 659, time: 0.70, dur: 0.15 },
-                { freq: 784, time: 0.95, dur: 0.25 },
-                { freq: 392, time: 1.40, dur: 0.25 },
-            ];
-            melody.forEach(({ freq, time, dur }) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'square';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.12, ctx.currentTime + time);
-                gain.gain.setValueAtTime(0.12, ctx.currentTime + time + dur * 0.8);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + dur);
-                osc.connect(gain).connect(ctx.destination);
-                osc.start(ctx.currentTime + time);
-                osc.stop(ctx.currentTime + time + dur);
-            });
+        function stopEngine() {
+            if (engineNode) { try { engineNode.stop(); } catch(e) {} }
+            engineNode = null;
+            engineGain = null;
+            engineFilter = null;
         }
+
+        function updateDisplay() {
+            var speed = parseInt(document.getElementById('speedSlider').value) / 100;
+            var upgrade = parseInt(document.getElementById('upgradeSlider').value) / 100;
+            document.getElementById('speedVal').textContent = Math.round(speed * 100) + '%';
+            document.getElementById('upgradeVal').textContent = Math.round(upgrade * 100) + '%';
+
+            if (engineNode && engineGain && engineFilter) {
+                // Per-vehicle tuning
+                var tuning = {
+                    truck: { lowRPM: 0.4, highRPM: 3.0, gears: 4,  filterType: 'lowpass', filterLo: 1800, filterHi: 2700, filterQ: 0.8, volBase: 0.10, volRange: 0.60 },
+                    tank:  { lowRPM: 0.25, highRPM: 1.5, gears: 2, filterType: 'lowpass', filterLo: 800,  filterHi: 1400, filterQ: 1.0, volBase: 0.12, volRange: 0.45 },
+                    f1:    { lowRPM: 0.5,  highRPM: 3.0, gears: 10, filterType: 'highpass', filterLo: 650, filterHi: 2800, filterQ: 0.95, volBase: 0.08, volRange: 0.55 },
+                    jet:   { lowRPM: 0.4,  highRPM: 2.8, gears: 1, filterType: 'highpass', filterLo: 500, filterHi: 2400, filterQ: 0.95, volBase: 0.08, volRange: 0.50 }
+                };
+                var t = tuning[currentVehicle] || tuning.truck;
+
+                var low  = t.lowRPM + upgrade * 0.05;
+                var high = t.highRPM + upgrade * 0.15;
+                var gearRatio = speed * t.gears;
+                var gear = Math.min(Math.floor(gearRatio), t.gears - 1);
+                var inGear = gearRatio - gear;
+                var gearBase = low + (gear / t.gears) * (high - low) * 0.5;
+                var gearTop  = gearBase + (high - low) / t.gears;
+                var rpm = gearBase + inGear * (gearTop - gearBase);
+
+                engineNode.playbackRate.value = rpm;
+
+                engineGain.gain.value = t.volBase + speed * t.volRange;
+
+                engineFilter.type = t.filterType;
+                engineFilter.frequency.value = t.filterLo + speed * (t.filterHi - t.filterLo);
+                engineFilter.Q.value = t.filterQ;
+
+                document.getElementById('currentRate').textContent = rpm.toFixed(2) + 'x';
+            }
+
+            requestAnimationFrame(updateDisplay);
+        }
+        updateDisplay();
     </script>
 </body>
 </html>
