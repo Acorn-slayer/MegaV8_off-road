@@ -6,9 +6,25 @@ class SoundFX {
         this.engineNode = null;
         this.engineGain = null;
         this.engineFilter = null;
+        this.engineBuffer = null;
+        this.engineBufferCache = {};
+        this.engineSampleKey = null;
         this.enabled = false;
         this.musicPlaying = false;
         this._musicTimeout = null;
+    }
+
+    _getEngineSamplePath(vehicleType = 'truck') {
+        switch (vehicleType) {
+            case 'tank':
+                return 'assets/audio/engine_tank_idle.mp3';
+            case 'f1':
+                return 'assets/audio/engine_f1_idle.mp3';
+            case 'jet':
+                return 'assets/audio/engine_jet_idle.mp3';
+            default:
+                return 'assets/audio/engine_idle.mp3';
+        }
     }
 
     // Must be called after a user gesture (click/tap) to unlock audio
@@ -171,16 +187,24 @@ class SoundFX {
 
     // ── Engine loop: real V8 sample with pitch shifting ───────
     // Uses a looped recording, playbackRate controls RPM
-    async startEngine() {
-        if (!this.enabled || GameState.sfxMuted || this.engineNode) return;
+    async startEngine(vehicleType = 'truck') {
+        if (!this.enabled || GameState.sfxMuted) return;
+        const samplePath = this._getEngineSamplePath(vehicleType);
+        if (this.engineNode && this.engineSampleKey === samplePath) return;
+        if (this.engineNode) {
+            this.stopEngine();
+        }
         this._ensureResumed();
         const ctx = this.ctx;
 
         try {
-            // Load the V8 idle sample
-            const response = await fetch('assets/audio/engine_idle.mp3');
-            const arrayBuffer = await response.arrayBuffer();
-            this.engineBuffer = await ctx.decodeAudioData(arrayBuffer);
+            if (!this.engineBufferCache[samplePath]) {
+                const response = await fetch(samplePath);
+                const arrayBuffer = await response.arrayBuffer();
+                this.engineBufferCache[samplePath] = await ctx.decodeAudioData(arrayBuffer);
+            }
+            this.engineBuffer = this.engineBufferCache[samplePath];
+            this.engineSampleKey = samplePath;
 
             this.engineGain = ctx.createGain();
             this.engineGain.gain.value = 0.3;
@@ -197,10 +221,11 @@ class SoundFX {
             this.engineNode.playbackRate.value = 0.8; // idle pitch
             this.engineNode.connect(this.engineFilter);
             this.engineNode.start();
-            console.log('SoundFX: V8 sample engine started');
+            console.log('SoundFX: sample engine started for ' + vehicleType);
         } catch (e) {
             console.warn('SoundFX: failed to load engine sample', e);
             this.engineNode = null;
+            this.engineSampleKey = null;
         }
     }
 
@@ -280,6 +305,7 @@ class SoundFX {
         this.engineGain = null;
         this.engineFilter = null;
         this.engineBuffer = null;
+        this.engineSampleKey = null;
     }
 
     // ── Lap complete: victory ding ─────────────────────────────

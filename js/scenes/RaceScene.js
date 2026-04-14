@@ -339,7 +339,7 @@ class RaceScene extends Phaser.Scene {
                     t.speed = 0;
                 }
                 this.showMessage('GO!', 1000);
-                soundFX.startEngine();
+                soundFX.startEngine(this.playerTruck.vehicleType);
                 soundFX.playStartJingle();
                 soundFX.startMusic();
             });
@@ -414,7 +414,7 @@ class RaceScene extends Phaser.Scene {
             }
 
             this.showMessage('GO!', 1000);
-            soundFX.startEngine();
+            soundFX.startEngine(this.playerTruck.vehicleType);
             soundFX.playStartJingle();
             soundFX.startMusic();
         });
@@ -906,7 +906,7 @@ class RaceScene extends Phaser.Scene {
             this._pauseMenuContainer = null;
         }
         if (!GameState.musicMuted && !this.raceFinished && !this._countdownActive) {
-            soundFX.startEngine();
+            soundFX.startEngine(this.playerTruck.vehicleType);
         }
     }
 
