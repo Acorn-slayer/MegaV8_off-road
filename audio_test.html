@@ -5,579 +5,221 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engine Audio Bench</title>
     <style>
-        :root {
-            color-scheme: dark;
-            --bg: #09111a;
-            --panel: rgba(12, 19, 29, 0.9);
-            --panel-2: rgba(255, 255, 255, 0.04);
-            --line: rgba(255, 255, 255, 0.1);
-            --text: #eef4fb;
-            --muted: #93a5bb;
-            --accent: #ff8a3d;
-            --accent-2: #4eb4ff;
-            --ok: #7fe2a9;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: "Segoe UI", Tahoma, sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(255, 138, 61, 0.18), transparent 30%),
-                radial-gradient(circle at top right, rgba(78, 180, 255, 0.16), transparent 32%),
-                linear-gradient(180deg, #0d1721 0%, var(--bg) 100%);
-        }
-
-        .shell {
-            width: min(1180px, calc(100% - 32px));
-            margin: 24px auto;
-            display: grid;
-            grid-template-columns: minmax(320px, 380px) 1fr;
-            gap: 18px;
-        }
-
-        .panel {
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            background: var(--panel);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
-        }
-
-        .sidebar,
-        .main {
-            padding: 18px;
-        }
-
-        h1 {
-            margin: 0 0 8px;
-            font-size: 30px;
-            letter-spacing: 0.02em;
-        }
-
-        .subtitle {
-            margin: 0 0 18px;
-            color: var(--muted);
-            line-height: 1.5;
-            font-size: 14px;
-        }
-
-        .stack {
-            display: grid;
-            gap: 14px;
-        }
-
-        .card {
-            padding: 14px;
-            border-radius: 14px;
-            border: 1px solid var(--line);
-            background: var(--panel-2);
-        }
-
-        .label {
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.09em;
-        }
-
-        .vehicle-grid,
-        .button-row {
-            display: grid;
-            gap: 10px;
-        }
-
-        .vehicle-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        button {
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 11px 14px;
-            font: inherit;
-            color: var(--text);
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        button:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        button.primary {
-            background: linear-gradient(180deg, rgba(255, 138, 61, 0.35), rgba(255, 138, 61, 0.12));
-        }
-
-        button.secondary {
-            background: linear-gradient(180deg, rgba(78, 180, 255, 0.28), rgba(78, 180, 255, 0.1));
-        }
-
-        button.ghost {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        button.selected {
-            border-color: rgba(255, 138, 61, 0.9);
-            box-shadow: inset 0 0 0 1px rgba(255, 138, 61, 0.35);
-            background: linear-gradient(180deg, rgba(255, 138, 61, 0.3), rgba(255, 138, 61, 0.12));
-        }
-
-        .button-row {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .field {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-
-        .field:last-child {
-            margin-bottom: 0;
-        }
-
-        .range-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: baseline;
-        }
-
-        .range-head strong {
-            font-size: 14px;
-        }
-
-        .range-head span {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-        }
-
-        .meta {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .cell {
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .cell .k {
-            color: var(--muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .cell .v {
-            margin-top: 6px;
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .sample-list {
-            margin: 0;
-            padding-left: 18px;
-            color: var(--muted);
-            line-height: 1.6;
-            font-size: 13px;
-        }
-
-        .status {
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(127, 226, 169, 0.25);
-            background: rgba(127, 226, 169, 0.08);
-            color: var(--ok);
-            font-size: 13px;
-        }
-
-        .status.warn {
-            border-color: rgba(255, 138, 61, 0.25);
-            background: rgba(255, 138, 61, 0.08);
-            color: #ffc08c;
-        }
-
-        #log {
-            min-height: 320px;
-            max-height: 420px;
-            overflow-y: auto;
-            margin: 0;
-            padding: 14px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(5, 10, 16, 0.72);
-            font-family: Consolas, "Courier New", monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
-
-        .hint {
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        @media (max-width: 980px) {
-            .shell {
-                grid-template-columns: 1fr;
-            }
-
-            .meta,
-            .button-row,
-            .vehicle-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .shell {
-                width: min(100% - 20px, 100%);
-                margin: 10px auto;
-            }
-
-            .meta,
-            .button-row,
-            .vehicle-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        body { background: #1a1a1a; color: #fff; font-family: monospace; padding: 30px; }
+        h1 { color: #ffcc00; }
+        .control { margin: 20px 0; }
+        label { display: inline-block; width: 200px; font-size: 16px; }
+        input[type="range"] { width: 300px; vertical-align: middle; }
+        .value { display: inline-block; width: 80px; color: #0f0; font-size: 18px; font-weight: bold; }
+        button { font-size: 18px; padding: 12px 25px; margin: 8px; cursor: pointer; border: none; border-radius: 6px; color: #fff; }
+        .init { background: #e44; }
+        .play { background: #38a; }
+        .stop { background: #666; }
+        .vehicle { background: #555; }
+        .vehicle.active { background: #e90; }
+        #speedSlider { width: 500px; }
+        .info { color: #888; font-size: 13px; margin-top: 5px; }
+        hr { border-color: #333; margin: 25px 0; }
+        #log { background: #111; padding: 12px; border-radius: 6px; font-size: 13px; color: #0f0; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <div class="shell">
-        <aside class="panel sidebar">
-            <h1>Engine Audio Bench</h1>
-            <p class="subtitle">Standalone tuning page for the live engine loop system. It loads the same sample files and uses the same RPM mapping as gameplay, so you can audition truck, tank, F1, and jet behavior without starting a race.</p>
+    <h1>Engine Audio Bench <span style="color:#888;font-size:14px" id="buildTag"></span></h1>
+    <p>Pick a vehicle, click Init Audio, adjust speed to hear the engine.</p>
 
-            <div class="stack">
-                <div class="card">
-                    <div class="label">Session</div>
-                    <div class="button-row">
-                        <button id="init-btn" class="primary" type="button">Init Audio</button>
-                        <button id="start-btn" class="secondary" type="button">Start Engine</button>
-                        <button id="stop-btn" class="ghost" type="button">Stop Engine</button>
-                    </div>
-                    <p class="hint">Use Init once after page load. The other controls can be reused while switching vehicles or RPM presets.</p>
-                </div>
+    <button class="init" onclick="initAudio()">Init Audio</button>
+    <button class="play" onclick="startEngine()">Start Engine</button>
+    <button class="stop" onclick="stopEngine()">Stop Engine</button>
+    <hr>
 
-                <div class="card">
-                    <div class="label">Vehicle</div>
-                    <div class="vehicle-grid" id="vehicle-grid">
-                        <button type="button" data-vehicle="truck">Truck</button>
-                        <button type="button" data-vehicle="tank">Tank</button>
-                        <button type="button" data-vehicle="f1">F1</button>
-                        <button type="button" data-vehicle="jet">Jet</button>
-                    </div>
-                </div>
+    <h2 style="color:#ffcc00;">Vehicle</h2>
+    <button class="vehicle active" onclick="selectVehicle('truck',this)">Truck</button>
+    <button class="vehicle" onclick="selectVehicle('tank',this)">Tank</button>
+    <button class="vehicle" onclick="selectVehicle('f1',this)">F1</button>
+    <button class="vehicle" onclick="selectVehicle('jet',this)">Jet</button>
+    <span class="value" id="sampleName">engine_idle.mp3</span>
+    <hr>
 
-                <div class="card">
-                    <div class="field">
-                        <div class="range-head">
-                            <strong>RPM / Speed Ratio</strong>
-                            <span id="rpm-value">0%</span>
-                        </div>
-                        <input id="rpm-slider" type="range" min="0" max="100" value="0">
-                    </div>
-
-                    <div class="field">
-                        <div class="range-head">
-                            <strong>Upgrade Ratio</strong>
-                            <span id="upgrade-value">0%</span>
-                        </div>
-                        <input id="upgrade-slider" type="range" min="0" max="100" value="0">
-                    </div>
-
-                    <div class="field">
-                        <div class="range-head">
-                            <strong>Top Speed Reference</strong>
-                            <span id="top-speed-value">220</span>
-                        </div>
-                        <input id="top-speed-slider" type="range" min="80" max="420" value="220">
-                    </div>
-
-                    <div class="button-row">
-                        <button id="preset-idle" type="button">Idle</button>
-                        <button id="preset-mid" type="button">Mid RPM</button>
-                        <button id="preset-redline" type="button">Redline</button>
-                    </div>
-                </div>
-
-                <div id="status" class="status warn">Audio not initialized.</div>
-            </div>
-        </aside>
-
-        <main class="panel main">
-            <div class="stack">
-                <div class="card">
-                    <div class="label">Live Readout</div>
-                    <div class="meta">
-                        <div class="cell">
-                            <div class="k">Vehicle</div>
-                            <div class="v" id="meta-vehicle">Truck</div>
-                        </div>
-                        <div class="cell">
-                            <div class="k">Sample</div>
-                            <div class="v" id="meta-sample">engine_idle.mp3</div>
-                        </div>
-                        <div class="cell">
-                            <div class="k">Playback Rate</div>
-                            <div class="v" id="meta-rate">-</div>
-                        </div>
-                        <div class="cell">
-                            <div class="k">Filter</div>
-                            <div class="v" id="meta-filter">-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="label">Current Samples</div>
-                    <ul class="sample-list">
-                        <li>Truck: <span id="sample-truck">assets/audio/engine_idle.mp3</span></li>
-                        <li>Tank: <span id="sample-tank">assets/audio/engine_tank_idle.mp3</span></li>
-                        <li>F1: <span id="sample-f1">assets/audio/engine_f1_idle.mp3</span></li>
-                        <li>Jet: <span id="sample-jet">assets/audio/engine_jet_idle.mp3</span></li>
-                    </ul>
-                </div>
-
-                <div class="card">
-                    <div class="label">Log</div>
-                    <pre id="log">Open the page, click Init Audio, then choose a vehicle and move the RPM slider.</pre>
-                </div>
-            </div>
-        </main>
+    <div class="control">
+        <label>Simulated Speed:</label>
+        <input type="range" id="speedSlider" min="0" max="100" step="1" value="0">
+        <span class="value" id="speedVal">0%</span>
+        <div class="info">Drag to simulate driving from idle to top speed</div>
     </div>
 
-    <script src="js/GameState.js"></script>
-    <script src="js/objects/SoundFX.js"></script>
+    <div class="control">
+        <label>Upgrade Ratio:</label>
+        <input type="range" id="upgradeSlider" min="0" max="100" step="1" value="0">
+        <span class="value" id="upgradeVal">0%</span>
+    </div>
+
+    <div class="control">
+        <label>Current playback rate:</label>
+        <span class="value" id="currentRate" style="color:#ff0;">—</span>
+    </div>
+
+    <hr>
+    <h2 style="color:#ffcc00;">Log</h2>
+    <pre id="log"></pre>
+
     <script>
-        GameState.sfxMuted = false;
-        GameState.musicMuted = true;
+        var BUILD = 'v8-2026-04-13';
+        document.getElementById('buildTag').textContent = BUILD;
 
-        const soundFX = new SoundFX();
-        const vehicleButtons = [...document.querySelectorAll('[data-vehicle]')];
-        const initBtn = document.getElementById('init-btn');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const rpmSlider = document.getElementById('rpm-slider');
-        const rpmValue = document.getElementById('rpm-value');
-        const upgradeSlider = document.getElementById('upgrade-slider');
-        const upgradeValue = document.getElementById('upgrade-value');
-        const topSpeedSlider = document.getElementById('top-speed-slider');
-        const topSpeedValue = document.getElementById('top-speed-value');
-        const statusEl = document.getElementById('status');
-        const logEl = document.getElementById('log');
-        const metaVehicle = document.getElementById('meta-vehicle');
-        const metaSample = document.getElementById('meta-sample');
-        const metaRate = document.getElementById('meta-rate');
-        const metaFilter = document.getElementById('meta-filter');
+        var ctx = null;
+        var engineNode = null;
+        var engineGain = null;
+        var engineFilter = null;
+        var engineBuffer = null;
+        var bufferCache = {};
+        var currentVehicle = 'truck';
 
-        const state = {
-            vehicleType: 'truck',
-            engineRunning: false,
-            lastLoggedRate: null,
-            animationId: 0,
+        var samples = {
+            truck: 'assets/audio/engine_idle.mp3',
+            tank:  'assets/audio/engine_tank_idle.mp3',
+            f1:    'assets/audio/engine_f1_idle.mp3',
+            jet:   'assets/audio/engine_jet_idle.mp3'
         };
 
-        function log(message) {
-            logEl.textContent += '\n' + message;
-            logEl.scrollTop = logEl.scrollHeight;
+        function log(msg) {
+            var el = document.getElementById('log');
+            el.textContent += msg + '\n';
+            el.scrollTop = el.scrollHeight;
+            console.log('[bench]', msg);
         }
 
-        function setStatus(message, warn = false) {
-            statusEl.textContent = message;
-            statusEl.classList.toggle('warn', warn);
-        }
+        log('Build ' + BUILD);
 
-        function getCurrentRatio() {
-            return Number(rpmSlider.value) / 100;
-        }
-
-        function getCurrentUpgradeRatio() {
-            return Number(upgradeSlider.value) / 100;
-        }
-
-        function getCurrentTopSpeed() {
-            return Number(topSpeedSlider.value);
-        }
-
-        function updateVehicleButtons() {
-            for (const button of vehicleButtons) {
-                button.classList.toggle('selected', button.dataset.vehicle === state.vehicleType);
+        function selectVehicle(name, btn) {
+            currentVehicle = name;
+            var btns = document.querySelectorAll('.vehicle');
+            for (var i = 0; i < btns.length; i++) btns[i].className = 'vehicle';
+            btn.className = 'vehicle active';
+            document.getElementById('sampleName').textContent = samples[name].split('/').pop();
+            log('Selected: ' + name + ' -> ' + samples[name]);
+            if (engineNode) {
+                startEngine();
             }
         }
 
-        function updateLabels() {
-            rpmValue.textContent = Math.round(getCurrentRatio() * 100) + '%';
-            upgradeValue.textContent = Math.round(getCurrentUpgradeRatio() * 100) + '%';
-            topSpeedValue.textContent = String(getCurrentTopSpeed());
-            metaVehicle.textContent = state.vehicleType.toUpperCase();
-            metaSample.textContent = soundFX._getEngineSamplePath(state.vehicleType).split('/').pop();
+        function initAudio() {
+            log('initAudio() called');
+            try {
+                if (!ctx) {
+                    ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    log('AudioContext created, sampleRate=' + ctx.sampleRate);
+                }
+                ctx.resume().then(function() {
+                    log('AudioContext resumed, state=' + ctx.state);
+                    var url = samples[currentVehicle];
+                    log('Fetching ' + url + '...');
+                    fetch(url).then(function(resp) {
+                        log('Fetch response: ' + resp.status + ' ' + resp.statusText);
+                        if (!resp.ok) { log('ERROR: fetch failed!'); return; }
+                        return resp.arrayBuffer();
+                    }).then(function(ab) {
+                        if (!ab) return;
+                        return ctx.decodeAudioData(ab);
+                    }).then(function(buf) {
+                        if (!buf) return;
+                        bufferCache[currentVehicle] = buf;
+                        engineBuffer = buf;
+                        log('Decoded OK, duration=' + buf.duration.toFixed(1) + 's');
+                        log('Auto-starting engine...');
+                        startEngine();
+                    }).catch(function(err) {
+                        log('ERROR loading sample: ' + err);
+                    });
+                });
+            } catch(e) {
+                log('ERROR in initAudio: ' + e);
+            }
         }
 
-        function applyEngineState() {
-            if (!state.engineRunning || !soundFX.engineNode) {
-                metaRate.textContent = '-';
-                metaFilter.textContent = '-';
-                return;
+        function startEngine() {
+            if (!ctx) { log('Click Init Audio first'); return; }
+            stopEngine();
+
+            var url = samples[currentVehicle];
+
+            function doStart(buf) {
+                engineBuffer = buf;
+                engineGain = ctx.createGain();
+                engineGain.gain.value = 0.3;
+                engineFilter = ctx.createBiquadFilter();
+                engineFilter.type = 'lowpass';
+                engineFilter.frequency.value = 2200;
+                engineFilter.Q.value = 0.8;
+                engineFilter.connect(engineGain).connect(ctx.destination);
+                engineNode = ctx.createBufferSource();
+                engineNode.buffer = buf;
+                engineNode.loop = true;
+                engineNode.playbackRate.value = 0.8;
+                engineNode.connect(engineFilter);
+                engineNode.start();
+                log('Engine started: ' + currentVehicle);
             }
 
-            const topSpeed = getCurrentTopSpeed();
-            const ratio = getCurrentRatio();
-            const upgradeRatio = getCurrentUpgradeRatio();
-            soundFX.updateEngine(ratio * topSpeed, topSpeed, upgradeRatio, state.vehicleType);
-
-            const playbackRate = soundFX.engineNode && soundFX.engineNode.playbackRate
-                ? soundFX.engineNode.playbackRate.value
-                : 0;
-            const filterMode = soundFX.engineFilter ? soundFX.engineFilter.type : '-';
-            const filterFreq = soundFX.engineFilter ? Math.round(soundFX.engineFilter.frequency.value) : 0;
-            metaRate.textContent = playbackRate ? playbackRate.toFixed(2) + 'x' : '-';
-            metaFilter.textContent = filterMode === '-' ? '-' : filterMode + ' @ ' + filterFreq + ' Hz';
-
-            if (state.lastLoggedRate === null || Math.abs(playbackRate - state.lastLoggedRate) >= 0.25) {
-                log('RPM ' + Math.round(ratio * 100) + '% -> playbackRate=' + playbackRate.toFixed(2) + ' (' + state.vehicleType + ')');
-                state.lastLoggedRate = playbackRate;
-            }
-        }
-
-        async function ensureEngineStarted() {
-            if (!soundFX.ctx) {
-                setStatus('Audio not initialized.', true);
-                log('Init Audio first.');
-                return false;
-            }
-
-            if (soundFX.ctx.state === 'suspended') {
-                await soundFX.ctx.resume();
-            }
-
-            await soundFX.startEngine(state.vehicleType);
-            state.engineRunning = Boolean(soundFX.engineNode);
-            state.lastLoggedRate = null;
-            if (state.engineRunning) {
-                setStatus('Engine running for ' + state.vehicleType + '.', false);
-                log('Started engine sample for ' + state.vehicleType + ': ' + soundFX._getEngineSamplePath(state.vehicleType));
-                applyEngineState();
+            if (bufferCache[currentVehicle]) {
+                doStart(bufferCache[currentVehicle]);
             } else {
-                setStatus('Engine failed to start.', true);
+                log('Loading ' + url + '...');
+                fetch(url).then(function(r) { return r.arrayBuffer(); })
+                    .then(function(ab) { return ctx.decodeAudioData(ab); })
+                    .then(function(buf) {
+                        bufferCache[currentVehicle] = buf;
+                        doStart(buf);
+                    })
+                    .catch(function(err) { log('ERROR: ' + err); });
             }
-            return state.engineRunning;
         }
 
         function stopEngine() {
-            soundFX.stopEngine();
-            state.engineRunning = false;
-            state.lastLoggedRate = null;
-            metaRate.textContent = '-';
-            metaFilter.textContent = '-';
-            setStatus('Engine stopped.', true);
-            log('Stopped engine.');
+            if (engineNode) { try { engineNode.stop(); } catch(e) {} }
+            engineNode = null;
+            engineGain = null;
+            engineFilter = null;
         }
 
-        async function selectVehicle(vehicleType) {
-            state.vehicleType = vehicleType;
-            updateVehicleButtons();
-            updateLabels();
+        function updateDisplay() {
+            var speed = parseInt(document.getElementById('speedSlider').value) / 100;
+            var upgrade = parseInt(document.getElementById('upgradeSlider').value) / 100;
+            document.getElementById('speedVal').textContent = Math.round(speed * 100) + '%';
+            document.getElementById('upgradeVal').textContent = Math.round(upgrade * 100) + '%';
 
-            if (state.engineRunning) {
-                await ensureEngineStarted();
-            } else {
-                setStatus('Selected ' + vehicleType + '. Start the engine to audition it.', true);
+            if (engineNode && engineGain && engineFilter) {
+                // Per-vehicle tuning
+                var tuning = {
+                    truck: { lowRPM: 0.4, highRPM: 3.0, gears: 4,  filterType: 'lowpass', filterLo: 1800, filterHi: 2700, filterQ: 0.8, volBase: 0.10, volRange: 0.60 },
+                    tank:  { lowRPM: 0.25, highRPM: 1.5, gears: 2, filterType: 'lowpass', filterLo: 800,  filterHi: 1400, filterQ: 1.0, volBase: 0.12, volRange: 0.45 },
+                    f1:    { lowRPM: 0.5,  highRPM: 3.0, gears: 10, filterType: 'highpass', filterLo: 650, filterHi: 2800, filterQ: 0.95, volBase: 0.08, volRange: 0.55 },
+                    jet:   { lowRPM: 0.4,  highRPM: 2.8, gears: 1, filterType: 'highpass', filterLo: 500, filterHi: 2400, filterQ: 0.95, volBase: 0.08, volRange: 0.50 }
+                };
+                var t = tuning[currentVehicle] || tuning.truck;
+
+                var low  = t.lowRPM + upgrade * 0.05;
+                var high = t.highRPM + upgrade * 0.15;
+                var gearRatio = speed * t.gears;
+                var gear = Math.min(Math.floor(gearRatio), t.gears - 1);
+                var inGear = gearRatio - gear;
+                var gearBase = low + (gear / t.gears) * (high - low) * 0.5;
+                var gearTop  = gearBase + (high - low) / t.gears;
+                var rpm = gearBase + inGear * (gearTop - gearBase);
+
+                engineNode.playbackRate.value = rpm;
+
+                engineGain.gain.value = t.volBase + speed * t.volRange;
+
+                engineFilter.type = t.filterType;
+                engineFilter.frequency.value = t.filterLo + speed * (t.filterHi - t.filterLo);
+                engineFilter.Q.value = t.filterQ;
+
+                document.getElementById('currentRate').textContent = rpm.toFixed(2) + 'x';
             }
+
+            requestAnimationFrame(updateDisplay);
         }
-
-        function setPreset(rpmPercent) {
-            rpmSlider.value = String(rpmPercent);
-            updateLabels();
-            applyEngineState();
-        }
-
-        function tick() {
-            applyEngineState();
-            state.animationId = window.requestAnimationFrame(tick);
-        }
-
-        initBtn.addEventListener('click', async () => {
-            try {
-                soundFX.init();
-                if (soundFX.ctx && soundFX.ctx.state === 'suspended') {
-                    await soundFX.ctx.resume();
-                }
-                if (soundFX.ctx) {
-                    setStatus('Audio ready. Context state: ' + soundFX.ctx.state, false);
-                    log('AudioContext ready, sampleRate=' + soundFX.ctx.sampleRate + ', state=' + soundFX.ctx.state);
-                }
-            } catch (error) {
-                setStatus('Init failed: ' + error.message, true);
-                log('Init failed: ' + error.message);
-            }
-        });
-
-        startBtn.addEventListener('click', async () => {
-            try {
-                await ensureEngineStarted();
-            } catch (error) {
-                setStatus('Start failed: ' + error.message, true);
-                log('Start failed: ' + error.message);
-            }
-        });
-
-        stopBtn.addEventListener('click', () => {
-            stopEngine();
-        });
-
-        for (const button of vehicleButtons) {
-            button.addEventListener('click', async () => {
-                await selectVehicle(button.dataset.vehicle);
-            });
-        }
-
-        rpmSlider.addEventListener('input', () => {
-            updateLabels();
-            applyEngineState();
-        });
-
-        upgradeSlider.addEventListener('input', () => {
-            updateLabels();
-            applyEngineState();
-        });
-
-        topSpeedSlider.addEventListener('input', () => {
-            updateLabels();
-            applyEngineState();
-        });
-
-        document.getElementById('preset-idle').addEventListener('click', () => setPreset(0));
-        document.getElementById('preset-mid').addEventListener('click', () => setPreset(52));
-        document.getElementById('preset-redline').addEventListener('click', () => setPreset(100));
-
-        updateVehicleButtons();
-        updateLabels();
-        state.animationId = window.requestAnimationFrame(tick);
-
-        window.addEventListener('beforeunload', () => {
-            if (state.animationId) {
-                window.cancelAnimationFrame(state.animationId);
-            }
-            soundFX.stopEngine();
-            soundFX.stopMusic && soundFX.stopMusic();
-        });
+        updateDisplay();
     </script>
 </body>
 </html>

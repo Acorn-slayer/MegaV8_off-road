@@ -45,12 +45,21 @@ class BootScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Name label
-        this.add.text(640, 360, 'ENTER YOUR NAME', {
+        // Name label (hidden after load)
+        this._nameLabel = this.add.text(640, 360, 'ENTER YOUR NAME', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#aaaaaa'
         }).setOrigin(0.5);
+
+        // Welcome text (shown after load)
+        this._welcomeText = this.add.text(640, 370, '', {
+            fontSize: '14px',
+            fontFamily: "'Press Start 2P', cursive",
+            color: '#00ff88',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setVisible(false);
 
         // Create HTML input for name entry (overlaid on canvas)
         const canvas = this.game.canvas;
@@ -82,6 +91,8 @@ class BootScene extends Phaser.Scene {
         `;
         document.body.appendChild(input);
         input.focus();
+        this._nameInput = input;
+        this._playerLoaded = false;
 
         // START button
         const startGfx = this.add.graphics();
@@ -104,20 +115,36 @@ class BootScene extends Phaser.Scene {
             startGfx.clear(); startGfx.fillStyle(0x33aa33, 1); startGfx.fillRoundedRect(540, 450, 200, 45, 10);
         });
         startZone.on('pointerdown', () => {
-            const name = (input.value.trim() || 'PLAYER').toUpperCase();
-            input.remove();
-            GameState.reset();
-            GameState.playerName = name;
+            if (this._nameInput && this._nameInput.parentNode) {
+                const name = (this._nameInput.value.trim() || 'PLAYER').toUpperCase();
+                this._nameInput.remove();
+                if (!this._playerLoaded) {
+                    GameState.reset();
+                    GameState.playerName = name;
+                }
+            }
             soundFX.init();
-            this.scene.start('TrackSelectScene');
+            // Resume championship if loaded player was in one
+            if (this._playerLoaded && GameState.gameMode === 'championship' && GameState.championshipOrder.length > 0) {
+                const idx = GameState.championshipRaceIndex;
+                const order = GameState.championshipOrder;
+                const trackIdx = order[idx] !== undefined ? order[idx] : idx;
+                if (trackIdx < GameState.tracks.length) {
+                    GameState.selectedTrack = GameState.tracks[trackIdx];
+                }
+                this.scene.start('RaceScene');
+            } else {
+                this.scene.start('TrackSelectScene');
+            }
         });
+        this._startZone = startZone;
 
         // LOAD GAME button
-        const loadGfx = this.add.graphics();
-        loadGfx.fillStyle(0x0f3460, 1);
-        loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
+        this._loadGfx = this.add.graphics();
+        this._loadGfx.fillStyle(0x0f3460, 1);
+        this._loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
 
-        this.add.text(640, 530, '📂 LOAD GAME', {
+        this._loadText = this.add.text(640, 530, '📂 LOAD GAME', {
             fontSize: '10px',
             fontFamily: "'Press Start 2P', cursive",
             color: '#aaaaaa',
@@ -125,20 +152,20 @@ class BootScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5);
 
-        const loadZone = this.add.zone(640, 530, 200, 40).setInteractive({ useHandCursor: true });
-        loadZone.on('pointerover', () => {
-            loadGfx.clear(); loadGfx.fillStyle(0x1a5276, 1); loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
+        this._loadZone = this.add.zone(640, 530, 200, 40).setInteractive({ useHandCursor: true });
+        this._loadZone.on('pointerover', () => {
+            this._loadGfx.clear(); this._loadGfx.fillStyle(0x1a5276, 1); this._loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
         });
-        loadZone.on('pointerout', () => {
-            loadGfx.clear(); loadGfx.fillStyle(0x0f3460, 1); loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
+        this._loadZone.on('pointerout', () => {
+            this._loadGfx.clear(); this._loadGfx.fillStyle(0x0f3460, 1); this._loadGfx.fillRoundedRect(540, 510, 200, 40, 10);
         });
-        loadZone.on('pointerdown', () => {
-            this._loadGame(input);
+        this._loadZone.on('pointerdown', () => {
+            this._loadGame();
         });
 
         // ── Audio toggle buttons ──────────────────────────────────
-        this._createMuteToggle(510, 580, '🎵', 'MUSIC', 'musicMuted');
-        this._createMuteToggle(650, 580, '🔊', 'SFX', 'sfxMuted');
+        this._muteMusic = this._createMuteToggle(510, 580, '🎵', 'MUSIC', 'musicMuted');
+        this._muteSfx = this._createMuteToggle(650, 580, '🔊', 'SFX', 'sfxMuted');
 
         // Enter key starts the game
         input.addEventListener('keydown', (e) => {
@@ -149,7 +176,7 @@ class BootScene extends Phaser.Scene {
 
         // Clean up input if scene shuts down
         this.events.on('shutdown', () => {
-            if (input.parentNode) input.remove();
+            if (this._nameInput && this._nameInput.parentNode) this._nameInput.remove();
         });
     }
 
@@ -174,12 +201,15 @@ class BootScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
+        const refresh = () => {
+            txt.setText(`${icon} ${label}: ${isMuted() ? 'OFF' : 'ON'}`);
+            draw();
+        };
+
         const zone = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
         zone.on('pointerdown', () => {
             GameState[stateKey] = !GameState[stateKey];
-            txt.setText(`${icon} ${label}: ${isMuted() ? 'OFF' : 'ON'}`);
-            draw();
-            // If music was just muted, stop it; if unmuted and engine running, restart
+            refresh();
             if (stateKey === 'musicMuted') {
                 if (GameState.musicMuted) soundFX.stopMusic();
             }
@@ -187,9 +217,11 @@ class BootScene extends Phaser.Scene {
                 if (GameState.sfxMuted) soundFX.stopEngine();
             }
         });
+
+        return refresh;
     }
 
-    async _loadGame(nameInput) {
+    async _loadGame() {
         try {
             let text;
             if (window.showOpenFilePicker) {
@@ -215,20 +247,24 @@ class BootScene extends Phaser.Scene {
             }
             const save = JSON.parse(text);
             GameState.loadSave(save);
-            if (nameInput && nameInput.parentNode) nameInput.remove();
-            soundFX.init();
-            // Resume championship if in progress
-            if (GameState.gameMode === 'championship' && GameState.championshipOrder.length > 0) {
-                const idx = GameState.championshipRaceIndex;
-                const order = GameState.championshipOrder;
-                const trackIdx = order[idx] !== undefined ? order[idx] : idx;
-                if (trackIdx < GameState.tracks.length) {
-                    GameState.selectedTrack = GameState.tracks[trackIdx];
-                }
-                this.scene.start('RaceScene');
-            } else {
-                this.scene.start('TrackSelectScene');
+            this._playerLoaded = true;
+
+            // Hide name input and load button, show welcome
+            if (this._nameInput && this._nameInput.parentNode) {
+                this._nameInput.remove();
             }
+            this._nameLabel.setVisible(false);
+            this._loadGfx.clear();
+            this._loadText.setVisible(false);
+            this._loadZone.disableInteractive();
+
+            // Show welcome message with player name and money
+            this._welcomeText.setText('Hello ' + GameState.playerName + '!  💰 $' + GameState.money);
+            this._welcomeText.setVisible(true);
+
+            // Refresh mute toggles to reflect loaded state
+            if (this._muteMusic) this._muteMusic();
+            if (this._muteSfx) this._muteSfx();
         } catch (e) {
             if (e !== 'No file') console.warn('Load failed:', e);
         }

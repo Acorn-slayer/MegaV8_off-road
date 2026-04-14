@@ -339,6 +339,7 @@ class RaceScene extends Phaser.Scene {
                     t.speed = 0;
                 }
                 this.showMessage('GO!', 1000);
+                console.log('[RaceScene GO] sfxMuted=' + GameState.sfxMuted + ' musicMuted=' + GameState.musicMuted + ' enabled=' + soundFX.enabled);
                 soundFX.startEngine(this.playerTruck.vehicleType);
                 soundFX.playStartJingle();
                 soundFX.startMusic();
@@ -837,6 +838,17 @@ class RaceScene extends Phaser.Scene {
         });
     }
 
+    _getPauseMenuLines() {
+        return [
+            'R = Resume',
+            'F = Forfeit Race',
+            'ESC = Resume',
+            '',
+            'M = Music: ' + (GameState.musicMuted ? 'OFF' : 'ON'),
+            'S = SFX: ' + (GameState.sfxMuted ? 'OFF' : 'ON'),
+        ];
+    }
+
     _openPauseMenu() {
         if (this._pauseMenuActive) return;
         this._pauseMenuActive = true;
@@ -849,11 +861,7 @@ class RaceScene extends Phaser.Scene {
         soundFX.updateTireScreech(0);
 
         if (this._domUi) {
-            this._showPauseDom('RACE MENU', [
-                'R = Resume',
-                'F = Forfeit Race',
-                'ESC = Resume',
-            ]);
+            this._showPauseDom('RACE MENU', this._getPauseMenuLines());
             return;
         }
 
@@ -868,11 +876,7 @@ class RaceScene extends Phaser.Scene {
             color: '#ffcc00', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        const lines = [
-            'R = Resume',
-            'F = Forfeit Race',
-            'ESC = Resume'
-        ];
+        const lines = this._getPauseMenuLines();
 
         const texts = [];
         for (let i = 0; i < lines.length; i++) {
@@ -891,6 +895,23 @@ class RaceScene extends Phaser.Scene {
         this._quitToTrackSelect();
     }
 
+    _refreshPauseMenu() {
+        const lines = this._getPauseMenuLines();
+        // DOM path
+        if (this._domUi) {
+            this._showPauseDom('RACE MENU', lines);
+        }
+        // Phaser text path
+        if (this._pauseMenuContainer) {
+            const texts = this._pauseMenuContainer.list.filter(c => c.type === 'Text' && c !== this._pauseMenuContainer.list[1]);
+            for (let i = 0; i < texts.length; i++) {
+                if (i < lines.length) {
+                    texts[i].setText(lines[i]);
+                }
+            }
+        }
+    }
+
     _closePauseMenu() {
         if (!this._pauseMenuActive) return;
         this._pauseMenuActive = false;
@@ -905,8 +926,11 @@ class RaceScene extends Phaser.Scene {
             this._pauseMenuContainer.destroy();
             this._pauseMenuContainer = null;
         }
-        if (!GameState.musicMuted && !this.raceFinished && !this._countdownActive) {
+        if (!GameState.sfxMuted && !this.raceFinished && !this._countdownActive) {
             soundFX.startEngine(this.playerTruck.vehicleType);
+        }
+        if (!GameState.musicMuted && !this.raceFinished) {
+            soundFX.startMusic();
         }
     }
 
@@ -992,6 +1016,15 @@ class RaceScene extends Phaser.Scene {
                 }
                 if (Phaser.Input.Keyboard.JustDown(this.fKey)) {
                     this._forfeitRace();
+                }
+                if (Phaser.Input.Keyboard.JustDown(this.musicKey)) {
+                    GameState.musicMuted = !GameState.musicMuted;
+                    if (GameState.musicMuted) soundFX.stopMusic();
+                    this._refreshPauseMenu();
+                }
+                if (Phaser.Input.Keyboard.JustDown(this.sKey)) {
+                    GameState.sfxMuted = !GameState.sfxMuted;
+                    this._refreshPauseMenu();
                 }
             }
             return;

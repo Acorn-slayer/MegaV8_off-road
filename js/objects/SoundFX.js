@@ -232,47 +232,36 @@ class SoundFX {
     updateEngine(speed, topSpeed, upgradeRatio, vehicleType = 'truck') {
         if (!this.engineNode || !this.engineGain) return;
         const ratio = Math.abs(speed) / topSpeed;
-        const isF1 = vehicleType === 'f1' || vehicleType === 'jet';
 
-        // ── 5-speed gearbox simulation ─────────────────────────
-        // Each gear covers a speed range. RPM climbs within gear, drops on shift.
-        const numGears = isF1 ? 5 : 3;
-        const gearRatio = ratio * numGears;          // 0→5 across speed range
-        const gear = Math.min(Math.floor(gearRatio), numGears - 1);
-        const inGear = gearRatio - gear;             // 0→1 within current gear
+        // ── Per-vehicle tuning ─────────────────────────────────
+        const tuning = {
+            truck: { lowRPM: 0.4, highRPM: 3.0, gears: 4,  filterType: 'lowpass',  filterLo: 1800, filterHi: 2700, filterQ: 0.8,  volBase: 0.10, volRange: 0.60 },
+            tank:  { lowRPM: 0.25, highRPM: 1.5, gears: 2,  filterType: 'lowpass',  filterLo: 800,  filterHi: 1400, filterQ: 1.0,  volBase: 0.12, volRange: 0.45 },
+            f1:    { lowRPM: 0.5,  highRPM: 3.0, gears: 10, filterType: 'highpass', filterLo: 650,  filterHi: 2800, filterQ: 0.95, volBase: 0.08, volRange: 0.55 },
+            jet:   { lowRPM: 0.4,  highRPM: 2.8, gears: 1,  filterType: 'highpass', filterLo: 500,  filterHi: 2400, filterQ: 0.95, volBase: 0.08, volRange: 0.50 },
+        };
+        const t = tuning[vehicleType] || tuning.truck;
 
-        // RPM within gear: subtle pitch shift, more volume-driven
-        // Tight pitch range keeps the sound natural (no chipmunk effect)
-        const lowRPM  = (isF1 ? 0.7 : 0.4) + upgradeRatio * (isF1 ? 0.07 : 0.05);
-        const highRPM = (isF1 ? 4.4 : 3.0) + upgradeRatio * (isF1 ? 0.28 : 0.2);
-
-        // Each higher gear starts at a slightly higher base pitch
-        const gearBase = lowRPM + (gear / numGears) * (highRPM - lowRPM) * (isF1 ? 0.72 : 0.5);
-        const gearTop  = gearBase + (highRPM - lowRPM) / numGears;
-
-        // RPM sweeps from gearBase to gearTop within current gear
+        // ── Gearbox simulation ─────────────────────────────────
+        const low  = t.lowRPM + upgradeRatio * 0.05;
+        const high = t.highRPM + upgradeRatio * 0.15;
+        const gearRatio = ratio * t.gears;
+        const gear = Math.min(Math.floor(gearRatio), t.gears - 1);
+        const inGear = gearRatio - gear;
+        const gearBase = low + (gear / t.gears) * (high - low) * 0.5;
+        const gearTop  = gearBase + (high - low) / t.gears;
         const rpm = gearBase + inGear * (gearTop - gearBase);
-        this.engineNode.playbackRate.value = rpm;
 
-        // Detect gear shift (thump disabled — too noticeable with subtle pitch range)
-        // if (this._lastGear !== undefined && gear > this._lastGear && ratio > 0.05) {
-        //     this._playShiftThump();
-        // }
+        this.engineNode.playbackRate.value = rpm;
         this._lastGear = gear;
 
-        // Volume does the heavy lifting for RPM feel
-        const baseVol = (isF1 ? 0.08 : 0.10) + upgradeRatio * 0.05;
-        this.engineGain.gain.value = baseVol + ratio * (isF1 ? 0.72 : 0.60) + (isF1 ? 0.04 : 0);
+        // Volume & filter
+        this.engineGain.gain.value = t.volBase + ratio * t.volRange;
         if (this.engineFilter) {
-            this.engineFilter.type = isF1 ? 'highpass' : 'lowpass';
-            this.engineFilter.frequency.value = isF1
-                ? 650 + ratio * 2200
-                : 1800 + ratio * 900;
-            this.engineFilter.Q.value = isF1 ? 0.95 : 0.8;
+            this.engineFilter.type = t.filterType;
+            this.engineFilter.frequency.value = t.filterLo + ratio * (t.filterHi - t.filterLo);
+            this.engineFilter.Q.value = t.filterQ;
         }
-
-        // Update music tempo (disabled – constant tempo sounds better)
-        // this.musicSpeedRatio = ratio;
     }
 
     // Brief exhaust pop on gear shift

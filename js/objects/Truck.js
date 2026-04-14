@@ -14,9 +14,9 @@ class Truck extends BaseTruck {
         if (cursors.left.isDown) steerTarget -= 1;
         if (cursors.right.isDown) steerTarget += 1;
 
-        const responseRate = 4.5;
-        const releaseRate = 6.0;
-        const steerRate = this.handling * 0.75;
+        const responseRate = 3.2;          // How fast steering input builds
+        const releaseRate = 5.0;           // How fast steering returns to center
+        const steerRate = this.handling * 0.55;    // Turn rate from handling stat
         const rate = steerTarget === 0 ? releaseRate : responseRate;
         this.steerState = Phaser.Math.Linear(this.steerState, steerTarget, Math.min(rate * dt, 1));
         if (Math.abs(this.steerState) < 0.001 && steerTarget === 0) {
