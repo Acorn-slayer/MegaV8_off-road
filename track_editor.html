@@ -42,12 +42,27 @@
             white-space: nowrap;
         }
         .btn:hover { background: #1a5276; color: #fff; }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .btn-primary { background: #e94560; border-color: #e94560; color: #fff; }
         .btn-primary:hover { background: #ff6b81; }
         .btn-success { background: #27ae60; border-color: #27ae60; color: #fff; }
         .btn-success:hover { background: #2ecc71; }
         .btn-sm { padding: 3px 8px; font-size: 11px; }
         .tool-btn.active { background: #e94560; border-color: #e94560; color: #fff; }
+        #dirty-state {
+            font-size: 10px;
+            color: #7f8fa6;
+            padding: 4px 8px;
+            border: 1px solid #2a3b57;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.18);
+            white-space: nowrap;
+        }
+        #dirty-state.dirty {
+            color: #ffcc00;
+            border-color: rgba(255, 204, 0, 0.35);
+            background: rgba(255, 204, 0, 0.08);
+        }
 
         #main {
             display: flex;
@@ -100,6 +115,31 @@
         }
         .form-row input[type="range"] { padding: 0; }
         .form-row input[type="checkbox"] { flex: none; width: auto; }
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .result-cell {
+            background: #1a1a2e;
+            border: 1px solid #2b344c;
+            border-radius: 4px;
+            padding: 6px;
+        }
+        .result-cell .rk {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #7f8fa6;
+            margin-bottom: 4px;
+            letter-spacing: 0.06em;
+        }
+        .result-cell .rv {
+            font-size: 12px;
+            color: #dfe6ef;
+            font-weight: 600;
+        }
+        .result-cell .rv.warn { color: #ffb347; }
+        .result-cell .rv.ok { color: #7ee081; }
 
         /* Sections list */
         #sections-scroll {
@@ -158,7 +198,37 @@
             background: #111;
             position: relative;
         }
-        #preview { border: 1px solid #333; display: block; }
+        #preview {
+            border: 1px solid #333;
+            display: block;
+            max-width: calc(100% - 20px);
+            max-height: calc(100% - 20px);
+            width: auto;
+            height: auto;
+            background: #111;
+        }
+        #preview-controls {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 10;
+        }
+        #preview-controls input[type="range"] {
+            width: 140px;
+        }
+        #zoom-value {
+            min-width: 44px;
+            font-size: 10px;
+            color: #d9e2f2;
+            text-align: center;
+        }
         #track-info {
             position: absolute;
             bottom: 8px; left: 8px;
@@ -204,6 +274,8 @@
     <div id="header">
         <h1>🏁 TRACK EDITOR</h1>
         <button class="btn" onclick="newTrack()">New</button>
+        <button class="btn" id="undoBtn" onclick="undoEdit()" disabled>↶ Undo</button>
+        <button class="btn" id="redoBtn" onclick="redoEdit()" disabled>↷ Redo</button>
         <div class="dropdown" id="tmplDrop">
             <button class="btn" onclick="toggleDropdown()">Templates ▾</button>
             <div class="dropdown-content">
@@ -218,6 +290,7 @@
         <button class="btn btn-primary" id="replaceBtn" onclick="replaceTrack()" style="display:none">🔄 Replace <span id="replaceFileName"></span></button>
         <button class="btn" onclick="exportPNG()">📷 PNG</button>
         <span style="flex:1"></span>
+        <span id="dirty-state">Saved</span>
         <span style="font-size:10px;color:#555">Mega V8 Off Road</span>
     </div>
 
@@ -231,7 +304,7 @@
                 </div>
                 <div class="form-row">
                     <label>Width</label>
-                    <input type="number" id="propWidth" value="70" min="30" max="120" oninput="updatePreview()">
+                    <input type="number" id="propWidth" value="70" min="30" max="120" oninput="syncTrackWidth(this.value)">
                     <label style="min-width:auto">Laps</label>
                     <input type="number" id="propLaps" value="3" min="1" max="10" style="width:40px;flex:none" oninput="updatePreview()">
                 </div>
@@ -257,6 +330,12 @@
                     </label>
                 </div>
                 <div class="form-row">
+                    <label>Draw</label>
+                    <input type="range" id="propDrawWidth" min="20" max="140" step="2" value="70"
+                        oninput="syncDrawWidth(this.value)">
+                    <span id="draw-width-value" style="min-width:38px;font-size:10px">70px</span>
+                </div>
+                <div class="form-row">
                     <label>Track</label>
                     <input type="color" id="colTrack" value="#8B7355" oninput="updatePreview()">
                     <label style="min-width:auto">Border</label>
@@ -267,6 +346,36 @@
                     <input type="color" id="colGrass" value="#4a7a3a" oninput="updatePreview()">
                     <label style="min-width:auto">BG</label>
                     <input type="color" id="colBg" value="#3a2a1a" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Results</h3>
+                <div class="result-grid">
+                    <div class="result-cell">
+                        <div class="rk">Loop</div>
+                        <div class="rv" id="res-loop">Open</div>
+                    </div>
+                    <div class="result-cell">
+                        <div class="rk">Gap</div>
+                        <div class="rv" id="res-gap">-</div>
+                    </div>
+                    <div class="result-cell">
+                        <div class="rk">Points</div>
+                        <div class="rv" id="res-points">0</div>
+                    </div>
+                    <div class="result-cell">
+                        <div class="rk">Walls</div>
+                        <div class="rv" id="res-walls">0</div>
+                    </div>
+                    <div class="result-cell">
+                        <div class="rk">Hazards</div>
+                        <div class="rv" id="res-hazards">0</div>
+                    </div>
+                    <div class="result-cell">
+                        <div class="rk">Start Line</div>
+                        <div class="rv" id="res-start">0</div>
+                    </div>
                 </div>
             </div>
 
@@ -283,15 +392,25 @@
         </div>
 
         <div id="canvas-wrap">
-            <canvas id="preview" width="800" height="600"></canvas>
+            <div id="preview-controls">
+                <button class="btn btn-sm" type="button" onclick="adjustPreviewZoom(-0.1)">−</button>
+                <input id="zoom-slider" type="range" min="0.5" max="3" step="0.1" value="1" oninput="setPreviewZoom(this.value)">
+                <span id="zoom-value">100%</span>
+                <button class="btn btn-sm" type="button" onclick="adjustPreviewZoom(0.1)">+</button>
+                <button class="btn btn-sm" type="button" onclick="fitPreviewZoom()">Fit</button>
+            </div>
+            <canvas id="preview" width="1200" height="840"></canvas>
             <div id="track-info"></div>
             <div id="shortcut-help">
                 S = add straight &nbsp; T = add turn<br>
-                Del = remove &nbsp; ↑↓ = navigate
+                Del = remove &nbsp; ↑↓ = navigate<br>
+                Zoom = preview detail
             </div>
-            <div id="tool-bar" style="position:absolute;top:6px;right:10px;display:flex;gap:4px;z-index:10">
+            <div id="tool-bar" style="position:absolute;top:6px;right:10px;display:flex;flex-direction:column;align-items:stretch;gap:4px;z-index:10">
                 <button class="btn btn-sm tool-btn active" data-tool="select" onclick="setTool('select')" title="Select sections">🔍 Select</button>
+                <button class="btn btn-sm tool-btn" data-tool="pan" onclick="setTool('pan')" title="Drag to move the preview">✋ Hand</button>
                 <button class="btn btn-sm tool-btn" data-tool="eraseWall" onclick="setTool('eraseWall')" title="Click walls to erase">🧹 Erase Wall</button>
+                <button class="btn btn-sm tool-btn" data-tool="paintWall" onclick="setTool('paintWall')" title="Draw custom wall segments">🖊️ Wall Pen</button>
                 <button class="btn btn-sm tool-btn" data-tool="placeStart" onclick="setTool('placeStart')" title="Click to place start line">🏁 Start Line</button>
                 <button class="btn btn-sm tool-btn" data-tool="freehand" onclick="setTool('freehand')" title="Draw centerline freehand">✏️ Draw</button>
             </div>
@@ -308,10 +427,12 @@
     let selIdx = -1;
     let currentTool = 'select';
     let erasedWalls = new Set();     // indices of erased wall sub-segments
+    let customWalls = [];
     let lastBuildResult = null;      // cached buildTrack() result
     let lastTx = x=>x, lastTy = y=>y; // cached transform functions
     lastTx.inv = x=>x; lastTy.inv = y=>y; // safe defaults for empty canvas
     let freehandPts = [];            // points during freehand drawing
+    let wallPenPts = [];
     let isDrawing = false;
     let loadedFileName = null;         // name of the loaded JSON file
     let loadedFileHandle = null;       // File System Access API handle for in-place save
@@ -319,6 +440,262 @@
     let showCenterline = false;         // draw thin dashed white centerline for debug/realism
     let customStartLineIdx = 0;       // waypoint index for start/finish line
     let freehandStartAngle = -90;      // initial heading from freehand draw
+    let previewZoom = 1;
+    let currentPreviewScale = 1;
+    let previewPanX = 0;
+    let previewPanY = 0;
+    let freehandCloseScreenPx = 40;
+    let undoStack = [];
+    let redoStack = [];
+    let savedSignature = '';
+    let isDirty = false;
+    let historyLocked = false;
+
+    function deepClone(v) {
+        return JSON.parse(JSON.stringify(v));
+    }
+
+    function getHistorySnapshot() {
+        return {
+            name: document.getElementById('propName').value,
+            trackWidth: parseInt(document.getElementById('propWidth').value) || 70,
+            drawWidth: parseInt(document.getElementById('propDrawWidth').value) || 70,
+            lapCount: parseInt(document.getElementById('propLaps').value) || 3,
+            walls: document.getElementById('propWalls').value,
+            truckScale: parseFloat(document.getElementById('propTruckScale').value) || 1,
+            colors: {
+                track: document.getElementById('colTrack').value,
+                border: document.getElementById('colBorder').value,
+                grass: document.getElementById('colGrass').value,
+                bg: document.getElementById('colBg').value,
+            },
+            sections: deepClone(sections),
+            selIdx,
+            erasedWalls: [...erasedWalls].sort((a, b) => a - b),
+            customWalls: deepClone(customWalls),
+            customStartLineIdx,
+            freehandStartAngle,
+        };
+    }
+
+    function applyHistorySnapshot(snapshot) {
+        historyLocked = true;
+        document.getElementById('propName').value = snapshot.name;
+        document.getElementById('propWidth').value = snapshot.trackWidth;
+        syncDrawWidth(snapshot.drawWidth != null ? snapshot.drawWidth : snapshot.trackWidth, false);
+        document.getElementById('propLaps').value = snapshot.lapCount;
+        document.getElementById('propWalls').value = snapshot.walls;
+        const tsEl = document.getElementById('propTruckScale');
+        tsEl.value = snapshot.truckScale;
+        tsEl.nextElementSibling.textContent = snapshot.truckScale + 'x';
+        document.getElementById('colTrack').value = snapshot.colors.track;
+        document.getElementById('colBorder').value = snapshot.colors.border;
+        document.getElementById('colGrass').value = snapshot.colors.grass;
+        document.getElementById('colBg').value = snapshot.colors.bg;
+        sections = deepClone(snapshot.sections);
+        selIdx = snapshot.selIdx;
+        erasedWalls = new Set(snapshot.erasedWalls || []);
+        customWalls = deepClone(snapshot.customWalls || []);
+        customStartLineIdx = snapshot.customStartLineIdx || 0;
+        freehandStartAngle = snapshot.freehandStartAngle != null ? snapshot.freehandStartAngle : -90;
+        renderSections();
+        updatePreview();
+        historyLocked = false;
+        updateEditorChrome();
+    }
+
+    function snapshotSignature(snapshot) {
+        return JSON.stringify(snapshot);
+    }
+
+    function getSaveSignature() {
+        return buildSaveJSON();
+    }
+
+    function setResultValue(id, value, state) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+        el.classList.remove('ok', 'warn');
+        if (state) el.classList.add(state);
+    }
+
+    function updateResultsPanel(data) {
+        setResultValue('res-loop', data.closed ? 'Closed' : 'Open', data.closed ? 'ok' : 'warn');
+        setResultValue('res-gap', data.gapText, data.closed ? 'ok' : 'warn');
+        setResultValue('res-points', String(data.points));
+        setResultValue('res-walls', String(data.walls));
+        setResultValue('res-hazards', String(data.hazards));
+        setResultValue('res-start', String(data.startIndex));
+    }
+
+    function updateEditorChrome() {
+        isDirty = savedSignature ? getSaveSignature() !== savedSignature : false;
+        const dirtyEl = document.getElementById('dirty-state');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        if (dirtyEl) {
+            dirtyEl.textContent = isDirty ? 'Unsaved changes' : 'Saved';
+            dirtyEl.classList.toggle('dirty', isDirty);
+        }
+        if (undoBtn) undoBtn.disabled = undoStack.length <= 1;
+        if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+    }
+
+    function resetHistory(markClean = true) {
+        const snapshot = getHistorySnapshot();
+        undoStack = [snapshot];
+        redoStack = [];
+        if (markClean) {
+            savedSignature = getSaveSignature();
+        }
+        updateEditorChrome();
+    }
+
+    function commitEditorState() {
+        if (historyLocked) return;
+        const snapshot = getHistorySnapshot();
+        const sig = snapshotSignature(snapshot);
+        const last = undoStack.length ? snapshotSignature(undoStack[undoStack.length - 1]) : null;
+        if (sig === last) {
+            updateEditorChrome();
+            return;
+        }
+        undoStack.push(snapshot);
+        if (undoStack.length > 100) undoStack.shift();
+        redoStack = [];
+        updateEditorChrome();
+    }
+
+    function undoEdit() {
+        if (undoStack.length <= 1) return;
+        const current = undoStack.pop();
+        redoStack.push(current);
+        applyHistorySnapshot(undoStack[undoStack.length - 1]);
+    }
+
+    function redoEdit() {
+        if (!redoStack.length) return;
+        const snapshot = redoStack.pop();
+        undoStack.push(snapshot);
+        applyHistorySnapshot(snapshot);
+    }
+
+    function updateZoomLabel() {
+        const zoomValue = document.getElementById('zoom-value');
+        const zoomSlider = document.getElementById('zoom-slider');
+        if (zoomSlider) zoomSlider.value = String(previewZoom);
+        if (zoomValue) zoomValue.textContent = Math.round(previewZoom * 100) + '%';
+    }
+
+    function setPreviewZoom(value) {
+        previewZoom = Math.max(0.5, Math.min(3, parseFloat(value) || 1));
+        updateZoomLabel();
+        updatePreview();
+    }
+
+    function adjustPreviewZoom(delta) {
+        setPreviewZoom(Math.round((previewZoom + delta) * 10) / 10);
+    }
+
+    function fitPreviewZoom() {
+        previewZoom = 1;
+        previewPanX = 0;
+        previewPanY = 0;
+        updateZoomLabel();
+        updatePreview();
+    }
+
+    function syncDrawWidth(value, mirrorTrackWidth = true) {
+        const width = Math.max(20, Math.min(140, parseInt(value, 10) || 70));
+        const drawInput = document.getElementById('propDrawWidth');
+        const drawValue = document.getElementById('draw-width-value');
+        if (drawInput) drawInput.value = String(width);
+        if (drawValue) drawValue.textContent = width + 'px';
+        if (mirrorTrackWidth) {
+            const trackWidthInput = document.getElementById('propWidth');
+            if (trackWidthInput) trackWidthInput.value = String(width);
+        }
+        updatePreview();
+    }
+
+    function syncTrackWidth(value, mirrorDrawWidth = true) {
+        const width = Math.max(20, Math.min(140, parseInt(value, 10) || 70));
+        const trackWidthInput = document.getElementById('propWidth');
+        const drawInput = document.getElementById('propDrawWidth');
+        const drawValue = document.getElementById('draw-width-value');
+        if (trackWidthInput) trackWidthInput.value = String(width);
+        if (mirrorDrawWidth) {
+            if (drawInput) drawInput.value = String(width);
+            if (drawValue) drawValue.textContent = width + 'px';
+        }
+        updatePreview();
+    }
+
+    function getDrawWidth() {
+        return parseInt(document.getElementById('propDrawWidth').value, 10)
+            || parseInt(document.getElementById('propWidth').value, 10)
+            || 70;
+    }
+
+    function getLoopCloseTolerance(trackWidth) {
+        return Math.max(15, Math.min(60, (trackWidth || 70) * 0.6));
+    }
+
+    function getCustomWallSegmentsFromStroke(screenPts) {
+        const worldPts = screenPts.map(p => ({ x: lastTx.inv(p.x), y: lastTy.inv(p.y) }));
+        const simplified = coalesceShortSegments(
+            rdpSimplify(worldPts, Math.max(1.5, getDrawWidth() * 0.04)),
+            Math.max(8, getDrawWidth() * 0.35),
+            45
+        );
+        const segments = [];
+        for (let i = 1; i < simplified.length; i++) {
+            const a = simplified[i - 1];
+            const b = simplified[i];
+            if (Math.hypot(b.x - a.x, b.y - a.y) < 4) continue;
+            segments.push([Math.round(a.x), Math.round(a.y), Math.round(b.x), Math.round(b.y)]);
+        }
+        return segments;
+    }
+
+    function drawTireBarrierSegment(ctx, x1, y1, x2, y2, scale, preview = false) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len < 0.001) return;
+
+        const tireRadius = Math.max(2.5, Math.min(5.5, 2.4 * scale));
+        const spacing = tireRadius * 1.7;
+        const count = Math.max(1, Math.round(len / spacing));
+        const ux = dx / len;
+        const uy = dy / len;
+
+        ctx.save();
+        for (let i = 0; i <= count; i++) {
+            const t = count === 0 ? 0 : i / count;
+            const cx = x1 + dx * t;
+            const cy = y1 + dy * t;
+
+            ctx.fillStyle = preview ? '#1a1a1a' : '#111111';
+            ctx.beginPath();
+            ctx.arc(cx, cy, tireRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = Math.max(1, tireRadius * 0.45);
+            ctx.strokeStyle = preview ? '#5c5c5c' : '#3e3e3e';
+            ctx.beginPath();
+            ctx.arc(cx, cy, tireRadius * 0.72, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.lineWidth = Math.max(0.75, tireRadius * 0.18);
+            ctx.strokeStyle = preview ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
+            ctx.beginPath();
+            ctx.arc(cx - tireRadius * 0.18, cy - tireRadius * 0.18, tireRadius * 0.9, Math.PI * 1.12, Math.PI * 1.72);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 
     // ═══════════════════════════════════════════════════════════
     // Embedded TrackBuilder (for preview)
@@ -326,8 +703,9 @@
     function buildTrack(def) {
         let x = def.startX || 400, y = def.startY || 500;
         let heading = (def.startAngle || 0) * Math.PI / 180;
-        const waypoints = [], walls = [], hazards = [], secOf = [];
+        const waypoints = [], walls = [], hazards = [], secOf = [], segmentWallModes = [];
         const hw = (def.trackWidth || 70) / 2;
+        const closeTolerance = getLoopCloseTolerance(def.trackWidth || 70);
         const defaultWalls = def.walls || 'none';
         let sn = 0;
 
@@ -343,8 +721,8 @@
                 for (let i = 0; i < n; i++) {
                     waypoints.push([Math.round(x), Math.round(y)]);
                     secOf.push(sn);
-                    if (sw !== 'none' && waypoints.length > 1)
-                        addWP(walls, waypoints[waypoints.length-2], waypoints[waypoints.length-1], hw, waypoints.length-2);
+                    if (waypoints.length > 1)
+                        segmentWallModes.push(sw);
                     x += Math.cos(heading) * step;
                     y += Math.sin(heading) * step;
                 }
@@ -361,8 +739,8 @@
                 for (let i = 0; i < steps; i++) {
                     waypoints.push([Math.round(x), Math.round(y)]);
                     secOf.push(sn);
-                    if (sw !== 'none' && waypoints.length > 1)
-                        addWP(walls, waypoints[waypoints.length-2], waypoints[waypoints.length-1], hw, waypoints.length-2);
+                    if (waypoints.length > 1)
+                        segmentWallModes.push(sw);
                     fc += sgn * Math.abs(sa);
                     x = cx + Math.cos(fc) * r;
                     y = cy + Math.sin(fc) * r;
@@ -392,25 +770,136 @@
         const first = waypoints[0];
         const last = [Math.round(x), Math.round(y)];
         const gap = first ? Math.sqrt((last[0]-first[0])**2 + (last[1]-first[1])**2) : 0;
-        if (gap > 15 && waypoints.length > 0) { waypoints.push(last); secOf.push(sn); }
-        if (defaultWalls !== 'none' && waypoints.length > 1)
-            addWP(walls, waypoints[waypoints.length-1], waypoints[0], hw, waypoints.length-1);
-        return { waypoints, walls, hazards, gap, endX: x, endY: y, secOf };
+        const closedLoop = gap <= closeTolerance;
+        if (!closedLoop && waypoints.length > 0) { waypoints.push(last); secOf.push(sn); }
+        if (waypoints.length > 1) {
+            const rawWalls = buildContinuousWalls(waypoints, hw, segmentWallModes, closedLoop && defaultWalls !== 'none');
+            walls.push(...cullWalls(rawWalls, waypoints, hw, secOf, closedLoop));
+        }
+        const customWallSegments = (def.customWalls || []).map((wall, idx) => {
+            const cx = (wall[0] + wall[2]) / 2;
+            const cy = (wall[1] + wall[3]) / 2;
+            return [wall[0], wall[1], wall[2], wall[3], cx, cy, -100000 - idx];
+        });
+        walls.push(...customWallSegments);
+        return { waypoints, walls, hazards, gap, endX: x, endY: y, secOf, customWallCount: customWallSegments.length };
     }
 
-    function addWP(walls, a, b, hw, wpIdx) {
-        const dx = b[0]-a[0], dy = b[1]-a[1], l = Math.sqrt(dx*dx+dy*dy);
-        if (!l) return;
-        const nx = -dy/l, ny = dx/l;
-        const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2;
-        walls.push([a[0]-nx*hw, a[1]-ny*hw, b[0]-nx*hw, b[1]-ny*hw, cx, cy, wpIdx]);
-        walls.push([a[0]+nx*hw, a[1]+ny*hw, b[0]+nx*hw, b[1]+ny*hw, cx, cy, wpIdx]);
+    function buildContinuousWalls(waypoints, hw, segmentWallModes, closeLoop) {
+        const len = waypoints.length;
+        if (len < 2) return [];
+
+        const segCount = closeLoop ? len : len - 1;
+        const segNormals = [];
+        const segDirs = [];
+        const segLengths = [];
+        for (let i = 0; i < segCount; i++) {
+            const j = (i + 1) % len;
+            const dx = waypoints[j][0] - waypoints[i][0];
+            const dy = waypoints[j][1] - waypoints[i][1];
+            const segLen = Math.sqrt(dx * dx + dy * dy) || 1;
+            segLengths.push(segLen);
+            segDirs.push({ x: dx / segLen, y: dy / segLen });
+            segNormals.push({ x: -dy / segLen, y: dx / segLen });
+        }
+
+        function intersectLines(a, b, c, d) {
+            const abx = b.x - a.x;
+            const aby = b.y - a.y;
+            const cdx = d.x - c.x;
+            const cdy = d.y - c.y;
+            const denom = abx * cdy - aby * cdx;
+            if (Math.abs(denom) < 0.0001) return null;
+            const acx = c.x - a.x;
+            const acy = c.y - a.y;
+            const t = (acx * cdy - acy * cdx) / denom;
+            return { x: a.x + abx * t, y: a.y + aby * t };
+        }
+
+        function offsetVertex(i, side) {
+            const prevIdx = closeLoop ? (i - 1 + segCount) % segCount : (i > 0 ? i - 1 : -1);
+            const nextIdx = i < segCount ? i : (closeLoop ? 0 : -1);
+            const prevNormal = prevIdx >= 0 ? segNormals[prevIdx] : null;
+            const nextNormal = nextIdx >= 0 ? segNormals[nextIdx] : null;
+            const prevDir = prevIdx >= 0 ? segDirs[prevIdx] : null;
+            const nextDir = nextIdx >= 0 ? segDirs[nextIdx] : null;
+            const prevLen = prevIdx >= 0 ? segLengths[prevIdx] : 0;
+            const nextLen = nextIdx >= 0 ? segLengths[nextIdx] : 0;
+            const point = { x: waypoints[i][0], y: waypoints[i][1] };
+
+            if (prevNormal && nextNormal && prevDir && nextDir) {
+                const prevStart = {
+                    x: point.x - prevDir.x * prevLen + prevNormal.x * hw * side,
+                    y: point.y - prevDir.y * prevLen + prevNormal.y * hw * side,
+                };
+                const prevEnd = {
+                    x: point.x + prevNormal.x * hw * side,
+                    y: point.y + prevNormal.y * hw * side,
+                };
+                const nextStart = {
+                    x: point.x + nextNormal.x * hw * side,
+                    y: point.y + nextNormal.y * hw * side,
+                };
+                const nextEnd = {
+                    x: point.x + nextDir.x * nextLen + nextNormal.x * hw * side,
+                    y: point.y + nextDir.y * nextLen + nextNormal.y * hw * side,
+                };
+                const intersection = intersectLines(prevStart, prevEnd, nextStart, nextEnd);
+                if (intersection) {
+                    const maxJoin = Math.max(hw * 2.5, Math.min(prevLen, nextLen) * 0.75);
+                    const dist = Math.hypot(intersection.x - point.x, intersection.y - point.y);
+                    if (dist <= maxJoin) return intersection;
+                }
+                return {
+                    x: point.x + nextNormal.x * hw * side,
+                    y: point.y + nextNormal.y * hw * side,
+                };
+            }
+
+            if (nextNormal) {
+                return { x: point.x + nextNormal.x * hw * side, y: point.y + nextNormal.y * hw * side };
+            }
+            if (prevNormal) {
+                return { x: point.x + prevNormal.x * hw * side, y: point.y + prevNormal.y * hw * side };
+            }
+            return point;
+        }
+
+        const leftPts = new Array(len);
+        const rightPts = new Array(len);
+        for (let i = 0; i < len; i++) {
+            leftPts[i] = offsetVertex(i, -1);
+            rightPts[i] = offsetVertex(i, 1);
+        }
+
+        const walls = [];
+        for (let i = 1; i < len; i++) {
+            if (segmentWallModes[i - 1] === 'none') continue;
+            const a = waypoints[i - 1], b = waypoints[i];
+            const leftA = leftPts[i - 1], leftB = leftPts[i];
+            const rightA = rightPts[i - 1], rightB = rightPts[i];
+            const cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
+            walls.push([Math.round(leftA.x), Math.round(leftA.y), Math.round(leftB.x), Math.round(leftB.y), cx, cy, i - 1]);
+            walls.push([Math.round(rightA.x), Math.round(rightA.y), Math.round(rightB.x), Math.round(rightB.y), cx, cy, i - 1]);
+        }
+
+        if (closeLoop && segmentWallModes.length) {
+            const a = waypoints[len - 1], b = waypoints[0];
+            const leftA = leftPts[len - 1], leftB = leftPts[0];
+            const rightA = rightPts[len - 1], rightB = rightPts[0];
+            const cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
+            walls.push([Math.round(leftA.x), Math.round(leftA.y), Math.round(leftB.x), Math.round(leftB.y), cx, cy, len - 1]);
+            walls.push([Math.round(rightA.x), Math.round(rightA.y), Math.round(rightB.x), Math.round(rightB.y), cx, cy, len - 1]);
+        }
+
+        return walls;
     }
 
-    function cullWalls(walls, waypoints, hw, secOf) {
+    function cullWalls(walls, waypoints, hw, secOf, closedLoop) {
         const SUB=8, thr=hw*0.85, thr2=thr*thr, len=waypoints.length;
         const segs=[];
-        for (let i=0;i<len;i++) { const j=(i+1)%len; segs.push([waypoints[i][0],waypoints[i][1],waypoints[j][0],waypoints[j][1],secOf?secOf[i]:-1]); }
+        const segCount = closedLoop ? len : len - 1;
+        for (let i=0;i<segCount;i++) { const j=(i+1)%len; segs.push([waypoints[i][0],waypoints[i][1],waypoints[j][0],waypoints[j][1],secOf?secOf[i]:-1]); }
         const out=[];
         for (const w of walls) {
             const wx=w[2]-w[0], wy=w[3]-w[1], wl=Math.sqrt(wx*wx+wy*wy);
@@ -473,6 +962,7 @@
                 border: document.getElementById('colBorder').value,
                 grass: document.getElementById('colGrass').value,
             },
+            customWalls: deepClone(customWalls),
             sections: sections.map(s => {
                 const o = { type: s.type };
                 if (s.type === 'straight') { o.length = s.length; if (s.rotate) o.rotate = s.rotate; }
@@ -492,11 +982,13 @@
         const ctx = c.getContext('2d');
         const W = c.width, H = c.height;
         const def = getDef();
+        const closeTolerance = getLoopCloseTolerance(def.trackWidth);
 
         ctx.fillStyle = def.colors.grass;
         ctx.fillRect(0, 0, W, H);
 
         if (!sections.length) {
+            currentPreviewScale = 1;
             ctx.fillStyle = '#555';
             ctx.font = '14px "Press Start 2P", monospace';
             ctx.textAlign = 'center';
@@ -505,27 +997,38 @@
             ctx.fillText('Or choose a Template above', W/2, H/2+18);
             document.getElementById('track-info').textContent = 'No sections';
             document.getElementById('sec-count').textContent = '(0)';
+            updateResultsPanel({ closed: false, gapText: '-', points: 0, walls: 0, hazards: 0, startIndex: 0 });
+            updateEditorChrome();
             return;
         }
 
         const res = buildTrack(def);
         lastBuildResult = res;
         const wps = res.waypoints;
-        if (wps.length < 2) { document.getElementById('track-info').textContent = 'Need more sections'; return; }
+        if (wps.length < 2) {
+            currentPreviewScale = 1;
+            document.getElementById('track-info').textContent = 'Need more sections';
+            updateResultsPanel({ closed: false, gapText: 'Need more', points: wps.length, walls: 0, hazards: res.hazards.length, startIndex: 0 });
+            updateEditorChrome();
+            return;
+        }
 
         // Auto-center
         const tw = def.trackWidth;
         let mnX=Infinity, mxX=-Infinity, mnY=Infinity, mxY=-Infinity;
         for (const w of wps) { mnX=Math.min(mnX,w[0]-tw); mxX=Math.max(mxX,w[0]+tw); mnY=Math.min(mnY,w[1]-tw); mxY=Math.max(mxY,w[1]+tw); }
         const rX=mxX-mnX||1, rY=mxY-mnY||1, pad=35;
-        const sc = Math.min((W-pad*2)/rX, (H-pad*2)/rY, 1.5);
+        const fitScale = Math.min((W-pad*2)/rX, (H-pad*2)/rY, 2.2);
+        const sc = fitScale * previewZoom;
+        currentPreviewScale = sc;
+        freehandCloseScreenPx = Math.max(18, Math.min(120, def.trackWidth * sc * 0.9));
         const cX=(mnX+mxX)/2, cY=(mnY+mxY)/2;
-        const tx = x => (x-cX)*sc + W/2;
-        const ty = y => (y-cY)*sc + H/2;
+        const tx = x => (x-cX)*sc + W/2 + previewPanX;
+        const ty = y => (y-cY)*sc + H/2 + previewPanY;
         lastTx = tx; lastTy = ty;
         // Inverse transforms for mouse → track coords
-        lastTx.inv = px => (px - W/2) / sc + cX;
-        lastTy.inv = py => (py - H/2) / sc + cY;
+        lastTx.inv = px => (px - W/2 - previewPanX) / sc + cX;
+        lastTy.inv = py => (py - H/2 - previewPanY) / sc + cY;
 
         // Border
         ctx.strokeStyle = def.colors.border;
@@ -533,7 +1036,7 @@
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath(); ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
         for (let i=1;i<wps.length;i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
-        if (res.gap <= 15) ctx.closePath();
+        if (res.gap <= closeTolerance) ctx.closePath();
         ctx.stroke();
 
         // Surface
@@ -541,7 +1044,7 @@
         ctx.lineWidth = tw*sc;
         ctx.beginPath(); ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
         for (let i=1;i<wps.length;i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
-        if (res.gap <= 15) ctx.closePath();
+        if (res.gap <= closeTolerance) ctx.closePath();
         ctx.stroke();
 
         // Optional centerline overlay (thin white dashes)
@@ -557,7 +1060,7 @@
             ctx.beginPath();
             ctx.moveTo(tx(wps[0][0]), ty(wps[0][1]));
             for (let i = 1; i < wps.length; i++) ctx.lineTo(tx(wps[i][0]), ty(wps[i][1]));
-            if (res.gap <= 15) ctx.closePath();
+            if (res.gap <= closeTolerance) ctx.closePath();
             ctx.stroke();
             ctx.restore();
             ctx.setLineDash([]);
@@ -569,9 +1072,18 @@
             for (let wi=0; wi<res.walls.length; wi++) {
                 if (erasedWalls.has(wi)) continue;
                 const w = res.walls[wi];
-                if (currentTool === 'eraseWall') ctx.strokeStyle = '#ff8888';
-                else ctx.strokeStyle = (Math.floor(wi / 2) % 2 === 0) ? '#cc0000' : '#ffffff';
-                ctx.beginPath(); ctx.moveTo(tx(w[0]),ty(w[1])); ctx.lineTo(tx(w[2]),ty(w[3])); ctx.stroke();
+                if (w[6] <= -100000) {
+                    if (currentTool === 'eraseWall') {
+                        ctx.strokeStyle = '#ff8888';
+                        ctx.beginPath(); ctx.moveTo(tx(w[0]),ty(w[1])); ctx.lineTo(tx(w[2]),ty(w[3])); ctx.stroke();
+                    } else {
+                        drawTireBarrierSegment(ctx, tx(w[0]), ty(w[1]), tx(w[2]), ty(w[3]), sc);
+                    }
+                } else {
+                    if (currentTool === 'eraseWall') ctx.strokeStyle = '#ff8888';
+                    else ctx.strokeStyle = (Math.floor(wi / 2) % 2 === 0) ? '#cc0000' : '#ffffff';
+                    ctx.beginPath(); ctx.moveTo(tx(w[0]),ty(w[1])); ctx.lineTo(tx(w[2]),ty(w[3])); ctx.stroke();
+                }
             }
         }
 
@@ -623,12 +1135,21 @@
 
         // Info bar
         const info = [`${wps.length} pts`];
-        if (res.gap <= 15) info.push('✅ Loop closed');
+        if (res.gap <= closeTolerance) info.push('✅ Loop closed');
         else info.push(`⚠ Gap: ${Math.round(res.gap)}px`);
-        if (res.walls.length) info.push(`${res.walls.length/2} walls`);
+        if (res.walls.length) info.push(`${Math.max(0, Math.round((res.walls.length - (res.customWallCount || 0)) / 2) + (res.customWallCount || 0))} walls`);
         if (res.hazards.length) info.push(`${res.hazards.length} hazards`);
         document.getElementById('track-info').textContent = info.join('  |  ');
         document.getElementById('sec-count').textContent = `(${sections.length})`;
+        updateResultsPanel({
+            closed: res.gap <= closeTolerance,
+            gapText: res.gap <= closeTolerance ? '0 px' : `${Math.round(res.gap)} px`,
+            points: wps.length,
+            walls: Math.max(0, Math.round((res.walls.length - (res.customWallCount || 0)) / 2) + (res.customWallCount || 0)),
+            hazards: res.hazards.length,
+            startIndex: Math.min(customStartLineIdx, Math.max(0, wps.length - 2)),
+        });
+        updateEditorChrome();
 
         // Truck size preview overlay
         if (showTruckPreview) {
@@ -696,13 +1217,13 @@
         else
             sections.push({ type:'turn', angle:90, radius:100, walls:false, hazards:[] });
         selIdx = sections.length - 1;
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function delSection(i) {
         sections.splice(i, 1);
         if (selIdx >= sections.length) selIdx = sections.length - 1;
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function moveSection(i, dir) {
@@ -710,13 +1231,13 @@
         if (j < 0 || j >= sections.length) return;
         [sections[i], sections[j]] = [sections[j], sections[i]];
         selIdx = j;
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function dupSection(i) {
         sections.splice(i + 1, 0, JSON.parse(JSON.stringify(sections[i])));
         selIdx = i + 1;
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function selSection(i) {
@@ -726,18 +1247,18 @@
 
     function addHazard(i) {
         sections[i].hazards.push({ type:'water', at:0.5 });
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function toggleAllWalls() {
         const allOn = sections.every(s => s.walls);
         sections.forEach(s => s.walls = !allOn);
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     function delHazard(si, hi) {
         sections[si].hazards.splice(hi, 1);
-        renderSections(); updatePreview();
+        renderSections(); updatePreview(); commitEditorState();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -864,6 +1385,8 @@
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        savedSignature = getSaveSignature();
+        updateEditorChrome();
     }
 
     async function replaceTrack() {
@@ -876,6 +1399,8 @@
                 await writable.write(json);
                 await writable.close();
                 document.getElementById('replaceFileName').textContent = loadedFileName + ' ✅';
+                savedSignature = getSaveSignature();
+                updateEditorChrome();
                 setTimeout(() => {
                     document.getElementById('replaceFileName').textContent = loadedFileName;
                 }, 1500);
@@ -891,6 +1416,8 @@
         a.download = loadedFileName;
         a.click();
         URL.revokeObjectURL(a.href);
+        savedSignature = getSaveSignature();
+        updateEditorChrome();
     }
 
     function buildSaveJSON() {
@@ -906,6 +1433,9 @@
         }
         if (customStartLineIdx > 0) {
             out.startLineIndex = customStartLineIdx;
+        }
+        if (customWalls.length > 0) {
+            out.customWalls = deepClone(customWalls);
         }
         return JSON.stringify(out, null, 2);
     }
@@ -946,9 +1476,10 @@
         ev.target.value = '';
     }
 
-    function applyDef(def) {
+    function applyDef(def, options = {}) {
         document.getElementById('propName').value = def.name || 'Loaded Track';
-        document.getElementById('propWidth').value = def.trackWidth || 70;
+        syncTrackWidth(def.trackWidth || 70, false);
+        syncDrawWidth(def.drawWidth || def.trackWidth || 70, false);
         document.getElementById('propLaps').value = def.lapCount || 3;
         document.getElementById('propWalls').value = def.walls || 'none';
         const tsEl = document.getElementById('propTruckScale');
@@ -971,9 +1502,17 @@
         }));
         selIdx = -1;
         erasedWalls = new Set(def.erasedWalls || []);
+        customWalls = deepClone(def.customWalls || []);
         customStartLineIdx = def.startLineIndex || 0;
         freehandStartAngle = def.startAngle != null ? def.startAngle : -90;
+        if (options.clearLoadedFile) {
+            loadedFileName = null;
+            loadedFileHandle = null;
+            document.getElementById('replaceBtn').style.display = 'none';
+            document.getElementById('replaceFileName').textContent = '';
+        }
         renderSections(); updatePreview();
+        resetHistory(options.markClean !== false);
     }
 
     function exportPNG() {
@@ -987,18 +1526,14 @@
 
     function newTrack() {
         if (sections.length && !confirm('Discard current track?')) return;
-        sections = []; selIdx = -1;
-        document.getElementById('propName').value = 'New Track';
-        document.getElementById('propWidth').value = '70';
-        document.getElementById('propLaps').value = '3';
-        document.getElementById('propWalls').value = 'none';
-        document.getElementById('propTruckScale').value = '1.0';
-        document.getElementById('propTruckScale').nextElementSibling.textContent = '1.0x';
-        document.getElementById('colTrack').value = '#8B7355';
-        document.getElementById('colBorder').value = '#5c4033';
-        document.getElementById('colGrass').value = '#4a7a3a';
-        document.getElementById('colBg').value = '#3a2a1a';
-        renderSections(); updatePreview();
+        applyDef({
+            name: 'New Track',
+            startX: 400, startY: 500, startAngle: -90,
+            trackWidth: 70, lapCount: 3, truckScale: 1.0, walls: 'none',
+            colors: { track: '#8B7355', border: '#5c4033', grass: '#4a7a3a', bg: '#3a2a1a' },
+            customWalls: [],
+            sections: []
+        }, { clearLoadedFile: true, markClean: true });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1081,7 +1616,7 @@
         const t = TEMPLATES[key]; if (!t) return;
         document.getElementById('tmplDrop').classList.remove('open');
         if (sections.length && !confirm('Replace current track with template?')) return;
-        applyDef({ ...t, startX:400, startY:500, startAngle:-90 });
+        applyDef({ ...t, startX:400, startY:500, startAngle:-90 }, { clearLoadedFile: true, markClean: true });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1104,7 +1639,17 @@
         currentTool = name;
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === name));
         const canvas = document.getElementById('preview');
-        canvas.style.cursor = name === 'eraseWall' ? 'crosshair' : name === 'placeStart' ? 'cell' : name === 'freehand' ? 'crosshair' : 'default';
+        canvas.style.cursor = name === 'eraseWall'
+            ? 'crosshair'
+            : name === 'paintWall'
+                ? 'crosshair'
+            : name === 'placeStart'
+                ? 'cell'
+                : name === 'freehand'
+                    ? 'crosshair'
+                    : name === 'pan'
+                        ? 'grab'
+                        : 'default';
         updatePreview();
     }
 
@@ -1114,19 +1659,54 @@
     (function() {
         const canvas = document.getElementById('preview');
         let hoveredWall = -1;
+        let isPanning = false;
+        let isPaintingWall = false;
+        let wallPaintChanged = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let panOriginX = 0;
+        let panOriginY = 0;
+
+        function drawWallPenOverlay() {
+            const ctx = canvas.getContext('2d');
+            if (wallPenPts.length < 2) return;
+            for (let i = 1; i < wallPenPts.length; i++) {
+                drawTireBarrierSegment(
+                    ctx,
+                    wallPenPts[i - 1].x,
+                    wallPenPts[i - 1].y,
+                    wallPenPts[i].x,
+                    wallPenPts[i].y,
+                    currentPreviewScale,
+                    true
+                );
+            }
+        }
 
         canvas.addEventListener('mousedown', e => {
             const rect = canvas.getBoundingClientRect();
             const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
             const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-            if (currentTool === 'eraseWall') {
+            if (currentTool === 'pan') {
+                isPanning = true;
+                panStartX = mx;
+                panStartY = my;
+                panOriginX = previewPanX;
+                panOriginY = previewPanY;
+                canvas.style.cursor = 'grabbing';
+            } else if (currentTool === 'paintWall') {
+                isPaintingWall = true;
+                wallPaintChanged = false;
+                wallPenPts = [{ x: mx, y: my }];
+            } else if (currentTool === 'eraseWall') {
                 if (!lastBuildResult || !lastBuildResult.walls.length) return;
                 const wi = findNearestWall(mx, my, 12);
                 if (wi >= 0) {
                     if (erasedWalls.has(wi)) erasedWalls.delete(wi);
                     else erasedWalls.add(wi);
                     updatePreview();
+                    commitEditorState();
                 }
             } else if (currentTool === 'placeStart') {
                 if (!lastBuildResult || !lastBuildResult.waypoints.length) return;
@@ -1140,6 +1720,7 @@
                 }
                 customStartLineIdx = bestIdx;
                 updatePreview();
+                commitEditorState();
             } else if (currentTool === 'freehand') {
                 isDrawing = true;
                 freehandPts = [{ x: mx, y: my }];
@@ -1158,7 +1739,15 @@
             const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
             const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-            if (currentTool === 'freehand' && isDrawing) {
+            if (currentTool === 'pan' && isPanning) {
+                previewPanX = panOriginX + (mx - panStartX);
+                previewPanY = panOriginY + (my - panStartY);
+                updatePreview();
+            } else if (currentTool === 'paintWall' && isPaintingWall) {
+                wallPenPts.push({ x: mx, y: my });
+                updatePreview();
+                drawWallPenOverlay();
+            } else if (currentTool === 'freehand' && isDrawing) {
                 freehandPts.push({ x: mx, y: my });
                 drawFreehandOverlay();
             } else if (currentTool === 'eraseWall') {
@@ -1172,7 +1761,34 @@
         });
 
         canvas.addEventListener('mouseup', e => {
-            if (currentTool === 'freehand' && isDrawing) {
+            if (currentTool === 'pan' && isPanning) {
+                isPanning = false;
+                canvas.style.cursor = 'grab';
+            } else if (currentTool === 'paintWall' && isPaintingWall) {
+                isPaintingWall = false;
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+                const last = wallPenPts[wallPenPts.length - 1];
+                if (!last || Math.abs(last.x - mx) > 1 || Math.abs(last.y - my) > 1) {
+                    wallPenPts.push({ x: mx, y: my });
+                }
+                const segments = getCustomWallSegmentsFromStroke(wallPenPts);
+                if (segments.length) {
+                    customWalls.push(...segments);
+                    wallPaintChanged = true;
+                }
+                wallPenPts = [];
+                updatePreview();
+                if (wallPaintChanged) commitEditorState();
+            } else if (currentTool === 'freehand' && isDrawing) {
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+                const last = freehandPts[freehandPts.length - 1];
+                if (!last || Math.abs(last.x - mx) > 1 || Math.abs(last.y - my) > 1) {
+                    freehandPts.push({ x: mx, y: my });
+                }
                 isDrawing = false;
                 if (freehandPts.length >= 3) freehandToSections(freehandPts);
                 freehandPts = [];
@@ -1181,6 +1797,21 @@
         });
 
         canvas.addEventListener('mouseleave', () => {
+            if (isPanning) {
+                isPanning = false;
+                canvas.style.cursor = currentTool === 'pan' ? 'grab' : 'default';
+            }
+            if (isPaintingWall) {
+                isPaintingWall = false;
+                const segments = getCustomWallSegmentsFromStroke(wallPenPts);
+                if (segments.length) {
+                    customWalls.push(...segments);
+                    wallPaintChanged = true;
+                }
+                wallPenPts = [];
+                updatePreview();
+                if (wallPaintChanged) commitEditorState();
+            }
             if (isDrawing) {
                 isDrawing = false;
                 if (freehandPts.length >= 3) freehandToSections(freehandPts);
@@ -1229,9 +1860,21 @@
         function drawFreehandOverlay() {
             const ctx = canvas.getContext('2d');
             if (freehandPts.length < 2) return;
+            const drawWidth = getDrawWidth();
+            const corridorScreenWidth = Math.max(8, drawWidth * currentPreviewScale);
             ctx.save();
+            ctx.strokeStyle = 'rgba(255, 204, 0, 0.22)';
+            ctx.lineWidth = corridorScreenWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(freehandPts[0].x, freehandPts[0].y);
+            for (let i = 1; i < freehandPts.length; i++) {
+                ctx.lineTo(freehandPts[i].x, freehandPts[i].y);
+            }
+            ctx.stroke();
             ctx.strokeStyle = '#ffcc00';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = Math.max(2, Math.min(8, corridorScreenWidth * 0.14));
             ctx.setLineDash([6, 4]);
             ctx.beginPath();
             ctx.moveTo(freehandPts[0].x, freehandPts[0].y);
@@ -1243,12 +1886,13 @@
                 const last = freehandPts[freehandPts.length - 1];
                 const dx = last.x - freehandPts[0].x, dy = last.y - freehandPts[0].y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 40) {
+                const snapRadius = Math.max(18, freehandCloseScreenPx);
+                if (dist < snapRadius) {
                     ctx.setLineDash([]);
                     ctx.strokeStyle = '#00ff66';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.arc(freehandPts[0].x, freehandPts[0].y, 12, 0, Math.PI * 2);
+                    ctx.arc(freehandPts[0].x, freehandPts[0].y, snapRadius * 0.5, 0, Math.PI * 2);
                     ctx.stroke();
                     ctx.fillStyle = '#00ff66';
                     ctx.globalAlpha = 0.3;
@@ -1315,19 +1959,67 @@
         return [first, last];
     }
 
+    function normalizeAngleRad(angle) {
+        while (angle > Math.PI) angle -= Math.PI * 2;
+        while (angle < -Math.PI) angle += Math.PI * 2;
+        return angle;
+    }
+
+    function coalesceShortSegments(pts, minSegmentLen, maxTurnDeg = 35) {
+        if (pts.length <= 2) return pts.slice();
+
+        const out = [pts[0]];
+        const maxTurn = maxTurnDeg * Math.PI / 180;
+        let anchor = pts[0];
+        let i = 1;
+
+        while (i < pts.length) {
+            let candidate = pts[i];
+            let j = i;
+
+            while (j < pts.length - 1) {
+                const dist = Math.hypot(candidate.x - anchor.x, candidate.y - anchor.y);
+                if (dist >= minSegmentLen) break;
+
+                const next = pts[j + 1];
+                const curHeading = Math.atan2(candidate.y - anchor.y, candidate.x - anchor.x);
+                const nextHeading = Math.atan2(next.y - anchor.y, next.x - anchor.x);
+                if (dist > minSegmentLen * 0.45 && Math.abs(normalizeAngleRad(nextHeading - curHeading)) > maxTurn) {
+                    break;
+                }
+
+                candidate = next;
+                j++;
+            }
+
+            if (candidate !== out[out.length - 1]) {
+                out.push(candidate);
+                anchor = candidate;
+            }
+            i = Math.max(j + 1, i + 1);
+        }
+
+        const last = pts[pts.length - 1];
+        const tail = out[out.length - 1];
+        if (tail.x !== last.x || tail.y !== last.y) out.push(last);
+        return out;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Freehand → sections conversion
     // ═══════════════════════════════════════════════════════════
     function freehandToSections(pts) {
         // Snap-to-close: check in screen coordinates (same as the green circle indicator)
-        const CLOSE_SCREEN_PX = 40;
+        const CLOSE_SCREEN_PX = Math.max(18, freehandCloseScreenPx);
         let isClosed = false;
+        let closeStartPt = null;
+        let closeEndPt = null;
         if (pts.length >= 10) {
             const last = pts[pts.length - 1], first = pts[0];
             const sd = Math.sqrt((last.x - first.x) ** 2 + (last.y - first.y) ** 2);
             if (sd < CLOSE_SCREEN_PX) {
-                // Snap endpoint to start in screen coords before converting
-                pts[pts.length - 1] = { x: first.x, y: first.y };
+                closeStartPt = { x: last.x, y: last.y };
+                closeEndPt = { x: first.x, y: first.y };
                 isClosed = true;
             }
         }
@@ -1337,81 +2029,83 @@
         if (tpts.length < 4) return;
 
         // ── 1. Close the loop: draw a line from end back to start ──
-        const first = tpts[0], last = tpts[tpts.length - 1];
-        const closeDist = Math.sqrt((last.x - first.x) ** 2 + (last.y - first.y) ** 2);
-        if (isClosed) {
-            // Insert evenly spaced points along a straight line from end → start
+        if (isClosed && closeStartPt && closeEndPt) {
+            const start = { x: lastTx.inv(closeStartPt.x), y: lastTy.inv(closeStartPt.y) };
+            const end = { x: lastTx.inv(closeEndPt.x), y: lastTy.inv(closeEndPt.y) };
+            const closeDist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            // Insert evenly spaced points along a straight line from actual end → start
             const n = Math.max(2, Math.round(closeDist / 10));
             for (let i = 1; i <= n; i++) {
                 const t = i / n;
-                tpts.push({ x: last.x + (first.x - last.x) * t, y: last.y + (first.y - last.y) * t });
+                tpts.push({ x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t });
             }
         }
 
-        // ── 2. Simplify: Ramer-Douglas-Peucker ──
-        const simplified = rdpSimplify(tpts, 8);
-        if (simplified.length < 2) return;
+        // ── 2. Simplify lightly, preserving the pen path ──
+        const simplifyEpsilon = Math.max(2, getDrawWidth() * 0.08);
+        const simplified = rdpSimplify(tpts, simplifyEpsilon);
+        const minSegmentLen = Math.max(10, getDrawWidth() * 0.65);
+        const cleaned = coalesceShortSegments(simplified, minSegmentLen);
+        if (cleaned.length < 2) return;
 
-        // ── 3. Compute segment headings and lengths ──
+        // ── 3. Convert the simplified polyline into short straights with heading changes ──
         const segs = [];
-        for (let i = 0; i < simplified.length - 1; i++) {
-            const dx = simplified[i+1].x - simplified[i].x;
-            const dy = simplified[i+1].y - simplified[i].y;
-            const len = Math.sqrt(dx*dx + dy*dy);
-            const heading = Math.atan2(dy, dx);
-            segs.push({ len, heading });
+        for (let i = 0; i < cleaned.length - 1; i++) {
+            const dx = cleaned[i + 1].x - cleaned[i].x;
+            const dy = cleaned[i + 1].y - cleaned[i].y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 6) continue;
+            segs.push({ len, heading: Math.atan2(dy, dx) });
         }
-
-        // Build sections: merge consecutive segments with similar heading into straights,
-        // large heading changes become turns
         if (!segs.length) return;
 
         const newSections = [];
-        let accLen = segs[0].len;
-        const turnThreshold = 8 * Math.PI / 180; // 8 degrees
+        freehandStartAngle = Math.round(segs[0].heading * 180 / Math.PI);
+        let prevHeading = segs[0].heading;
+        newSections.push({ type: 'straight', length: Math.round(segs[0].len), walls: false, hazards: [] });
 
         for (let i = 1; i < segs.length; i++) {
-            let dh = segs[i].heading - segs[i-1].heading;
-            // Normalize to -PI..PI
-            while (dh > Math.PI) dh -= 2*Math.PI;
-            while (dh < -Math.PI) dh += 2*Math.PI;
-
-            if (Math.abs(dh) < turnThreshold) {
-                // Continue the current straight
-                accLen += segs[i].len;
-            } else {
-                // Flush accumulated straight
-                if (accLen > 10) {
-                    newSections.push({ type: 'straight', length: Math.round(accLen), walls: false, hazards: [] });
-                }
-                // Add a turn
-                const angleDeg = Math.round(dh * 180 / Math.PI);
-                const radius = Math.max(40, Math.round(Math.min(segs[i].len, segs[i-1].len) * 1.2));
-                newSections.push({ type: 'turn', angle: angleDeg, radius: radius, walls: false, hazards: [] });
-                accLen = segs[i].len;
-            }
-        }
-        // Flush last straight
-        if (accLen > 10) {
-            newSections.push({ type: 'straight', length: Math.round(accLen), walls: false, hazards: [] });
-        }
-
-        // If auto-closed, add a final turn to smoothly reconnect to the first heading
-        if (isClosed && segs.length >= 2) {
-            let dh = segs[0].heading - segs[segs.length - 1].heading;
-            while (dh > Math.PI) dh -= 2 * Math.PI;
-            while (dh < -Math.PI) dh += 2 * Math.PI;
-            if (Math.abs(dh) > turnThreshold) {
-                const angleDeg = Math.round(dh * 180 / Math.PI);
-                const radius = Math.max(40, Math.round(segs[segs.length - 1].len * 1.2));
-                newSections.push({ type: 'turn', angle: angleDeg, radius: radius, walls: false, hazards: [] });
-            }
+            const rotateDeg = Math.round(normalizeAngleRad(segs[i].heading - prevHeading) * 180 / Math.PI);
+            const section = { type: 'straight', length: Math.round(segs[i].len), walls: false, hazards: [] };
+            if (Math.abs(rotateDeg) > 0) section.rotate = rotateDeg;
+            newSections.push(section);
+            prevHeading = segs[i].heading;
         }
 
         if (newSections.length === 0) return;
 
-        // Set the initial heading from the first segment
-        freehandStartAngle = Math.round(segs[0].heading * 180 / Math.PI);
+        const previewBuild = buildTrack({
+            name: 'Freehand Preview',
+            startX: 400,
+            startY: 500,
+            startAngle: freehandStartAngle,
+            trackWidth: getDrawWidth(),
+            lapCount: parseInt(document.getElementById('propLaps').value, 10) || 3,
+            truckScale: parseFloat(document.getElementById('propTruckScale').value) || 1,
+            walls: document.getElementById('propWalls').value,
+            colors: {
+                bg: document.getElementById('colBg').value,
+                track: document.getElementById('colTrack').value,
+                border: document.getElementById('colBorder').value,
+                grass: document.getElementById('colGrass').value,
+            },
+            sections: newSections,
+        });
+        if (previewBuild.waypoints.length > 0) {
+            const firstWp = previewBuild.waypoints[0];
+            const lastWp = previewBuild.waypoints[Math.max(0, previewBuild.waypoints.length - 1)];
+            const dxToStart = firstWp[0] - previewBuild.endX;
+            const dyToStart = firstWp[1] - previewBuild.endY;
+            const closeLen = Math.sqrt(dxToStart * dxToStart + dyToStart * dyToStart);
+            if (closeLen > 1) {
+                const lastHeading = Math.atan2(previewBuild.endY - lastWp[1], previewBuild.endX - lastWp[0]);
+                const targetHeading = Math.atan2(dyToStart, dxToStart);
+                const rotateDeg = Math.round(normalizeAngleRad(targetHeading - lastHeading) * 180 / Math.PI);
+                const connector = { type: 'straight', length: Math.round(closeLen), walls: false, hazards: [] };
+                if (Math.abs(rotateDeg) > 0) connector.rotate = rotateDeg;
+                newSections.push(connector);
+            }
+        }
 
         // Replace current sections confirmation
         if (sections.length > 0 && !confirm('Replace current sections with freehand drawing?')) return;
@@ -1421,6 +2115,7 @@
         selIdx = -1;
         renderSections();
         updatePreview();
+        commitEditorState();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1428,8 +2123,12 @@
     // ═══════════════════════════════════════════════════════════
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undoEdit(); return; }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && (e.key === 'z' || e.key === 'Z')))) { e.preventDefault(); redoEdit(); return; }
         if (e.key === 's' || e.key === 'S') { e.preventDefault(); addSection('straight'); }
         if (e.key === 't' || e.key === 'T') { e.preventDefault(); addSection('turn'); }
+        if (e.key === 'h' || e.key === 'H') { e.preventDefault(); setTool('pan'); }
+        if (e.key === 'w' || e.key === 'W') { e.preventDefault(); setTool('paintWall'); }
         if (e.key === 'Delete' && selIdx >= 0) { delSection(selIdx); }
         if (e.key === 'd' || e.key === 'D') { if (selIdx >= 0) dupSection(selIdx); }
         if (e.key === 'ArrowUp' && e.ctrlKey && selIdx > 0) { e.preventDefault(); moveSection(selIdx, -1); }
@@ -1438,10 +2137,18 @@
         if (e.key === 'ArrowDown' && !e.ctrlKey && selIdx < sections.length-1) { e.preventDefault(); selSection(selIdx+1); }
     });
 
+    document.addEventListener('change', e => {
+        if (!e.target.closest('#left-panel')) return;
+        if (e.target.id === 'showCenterline') return;
+        commitEditorState();
+    }, true);
+
     // ═══════════════════════════════════════════════════════════
     // Init — load oval template
     // ═══════════════════════════════════════════════════════════
-    applyDef({ ...TEMPLATES.oval, startX:400, startY:500, startAngle:-90 });
+    updateZoomLabel();
+    syncDrawWidth(70, false);
+    applyDef({ ...TEMPLATES.oval, startX:400, startY:500, startAngle:-90 }, { clearLoadedFile: true, markClean: true });
     </script>
 </body>
 </html>

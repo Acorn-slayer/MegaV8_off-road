@@ -1,0 +1,379 @@
+{
+  "name": "bug2",
+  "startX": 400,
+  "startY": 500,
+  "startAngle": -176,
+  "trackWidth": 20,
+  "lapCount": 3,
+  "truckScale": 0.5,
+  "walls": "none",
+  "colors": {
+    "bg": 3811866,
+    "track": 9139029,
+    "border": 6045747,
+    "grass": 4880954
+  },
+  "customWalls": [
+    [
+      400,
+      469,
+      404,
+      489
+    ],
+    [
+      404,
+      489,
+      417,
+      499
+    ],
+    [
+      417,
+      499,
+      425,
+      499
+    ],
+    [
+      425,
+      499,
+      444,
+      491
+    ],
+    [
+      444,
+      491,
+      463,
+      479
+    ],
+    [
+      376,
+      633,
+      381,
+      632
+    ],
+    [
+      317,
+      660,
+      311,
+      665
+    ],
+    [
+      311,
+      665,
+      309,
+      676
+    ],
+    [
+      309,
+      676,
+      314,
+      684
+    ]
+  ],
+  "sections": [
+    {
+      "type": "straight",
+      "length": 27,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 49,
+      "rotate": -16,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 50,
+      "rotate": 6,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 39,
+      "rotate": -10,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 21,
+      "rotate": -11,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 45,
+      "rotate": -21,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 60,
+      "rotate": -29,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 30,
+      "rotate": 18,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 46,
+      "rotate": -12,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 20,
+      "rotate": -14,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 53,
+      "rotate": -49,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 28,
+      "rotate": -10,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 91,
+      "rotate": -12,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 25,
+      "rotate": -7,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 122,
+      "rotate": -9,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 78,
+      "rotate": -4,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 61,
+      "rotate": -11,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 43,
+      "rotate": 6,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 16,
+      "rotate": -17,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 25,
+      "rotate": -42,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 17,
+      "rotate": -32,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 19,
+      "rotate": -22,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 34,
+      "rotate": -33,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 42,
+      "rotate": -11,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 42,
+      "rotate": -12,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 167,
+      "rotate": -5,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 16,
+      "rotate": 18,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 36,
+      "rotate": 13,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 14,
+      "rotate": 33,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 15,
+      "rotate": 54,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 50,
+      "rotate": 30,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 56,
+      "rotate": 20,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 35,
+      "rotate": 7,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 104,
+      "rotate": 17,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 47,
+      "rotate": 8,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 16,
+      "rotate": -16,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 26,
+      "rotate": 13,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 39,
+      "rotate": 5,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 24,
+      "rotate": -69,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 24,
+      "rotate": -30,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 53,
+      "rotate": -13,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 20,
+      "rotate": -17,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 13,
+      "rotate": -17,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 21,
+      "rotate": -10,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 60,
+      "rotate": -18,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 42,
+      "rotate": -24,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 48,
+      "rotate": 9,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 78,
+      "rotate": -12,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 24,
+      "rotate": -9,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 24,
+      "rotate": -3,
+      "walls": true
+    },
+    {
+      "type": "straight",
+      "length": 16,
+      "rotate": 86,
+      "walls": true
+    }
+  ]
+}

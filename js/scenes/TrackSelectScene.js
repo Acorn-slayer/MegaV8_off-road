@@ -264,12 +264,36 @@ class TrackSelectScene extends Phaser.Scene {
 
         // Draw walls if any
         if (track.walls && track.walls.length > 0) {
-            gfx.lineStyle(1, track.wallColor || 0xcccccc, 0.5);
             for (const w of track.walls) {
-                gfx.beginPath();
-                gfx.moveTo(w[0] * scale + offX, w[1] * scale + offY);
-                gfx.lineTo(w[2] * scale + offX, w[3] * scale + offY);
-                gfx.strokePath();
+                const x1 = w[0] * scale + offX;
+                const y1 = w[1] * scale + offY;
+                const x2 = w[2] * scale + offX;
+                const y2 = w[3] * scale + offY;
+                if (w[6] <= -100000) {
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const len = Math.hypot(dx, dy);
+                    if (len > 0.001) {
+                        const tireRadius = Math.max(0.9, 1.4 * scale);
+                        const spacing = tireRadius * 1.7;
+                        const count = Math.max(1, Math.round(len / spacing));
+                        for (let i = 0; i <= count; i++) {
+                            const t = count === 0 ? 0 : i / count;
+                            const cx2 = x1 + dx * t;
+                            const cy2 = y1 + dy * t;
+                            gfx.fillStyle(0x111111, 0.9);
+                            gfx.fillCircle(cx2, cy2, tireRadius);
+                            gfx.lineStyle(Math.max(0.5, tireRadius * 0.35), 0x444444, 0.9);
+                            gfx.strokeCircle(cx2, cy2, tireRadius * 0.72);
+                        }
+                    }
+                } else {
+                    gfx.lineStyle(1, track.wallColor || 0xcccccc, 0.5);
+                    gfx.beginPath();
+                    gfx.moveTo(x1, y1);
+                    gfx.lineTo(x2, y2);
+                    gfx.strokePath();
+                }
             }
         }
 

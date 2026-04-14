@@ -13,6 +13,7 @@
     "border": 6045747,
     "grass": 4880954
   },
+  "customWalls": [],
   "sections": [
     {
       "type": "straight",

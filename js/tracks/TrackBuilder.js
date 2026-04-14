@@ -23,6 +23,10 @@
 
 const TrackBuilder = {
 
+    _getLoopCloseTolerance(trackWidth) {
+        return Math.max(15, Math.min(60, (trackWidth || 70) * 0.6));
+    },
+
     build(def) {
         let x = def.startX || 400;
         let y = def.startY || 500;
@@ -32,7 +36,9 @@ const TrackBuilder = {
         const walls = [];
         const hazards = [];
         const sectionOf = [];             // sectionOf[wpIdx] = section number
+        const segmentWallModes = [];      // wall mode for segment wp[i-1] -> wp[i]
         const hw = (def.trackWidth || 70) / 2;
+        const closeTolerance = this._getLoopCloseTolerance(def.trackWidth || 70);
         const defaultWalls = def.walls || 'none';
         let secNum = 0;
 
@@ -53,8 +59,8 @@ const TrackBuilder = {
                 for (let i = 0; i < numPts; i++) {
                     waypoints.push([Math.round(x), Math.round(y)]);
                     sectionOf.push(secNum);
-                    if (secWalls !== 'none' && waypoints.length > 1) {
-                        this._addWallPair(walls, waypoints[waypoints.length - 2], waypoints[waypoints.length - 1], hw, waypoints.length - 2);
+                    if (waypoints.length > 1) {
+                        segmentWallModes.push(secWalls);
                     }
                     x += Math.cos(heading) * stepLen;
                     y += Math.sin(heading) * stepLen;
@@ -76,8 +82,8 @@ const TrackBuilder = {
                 for (let i = 0; i < steps; i++) {
                     waypoints.push([Math.round(x), Math.round(y)]);
                     sectionOf.push(secNum);
-                    if (secWalls !== 'none' && waypoints.length > 1) {
-                        this._addWallPair(walls, waypoints[waypoints.length - 2], waypoints[waypoints.length - 1], hw, waypoints.length - 2);
+                    if (waypoints.length > 1) {
+                        segmentWallModes.push(secWalls);
                     }
                     fromCenter += sign * Math.abs(stepAngle);
                     x = cx + Math.cos(fromCenter) * radius;
@@ -122,18 +128,23 @@ const TrackBuilder = {
         const first = waypoints[0];
         const last = [Math.round(x), Math.round(y)];
         const closeDist = Math.sqrt((last[0] - first[0]) ** 2 + (last[1] - first[1]) ** 2);
-        if (closeDist > 15) {
+        const closedLoop = closeDist <= closeTolerance;
+        if (!closedLoop) {
             waypoints.push(last);
             sectionOf.push(secNum);  // closing segment gets its own section
         }
 
-        // Closing wall segment
-        if (defaultWalls !== 'none' && waypoints.length > 1) {
-            this._addWallPair(walls, waypoints[waypoints.length - 1], waypoints[0], hw, waypoints.length - 1);
+        if (waypoints.length > 1) {
+            const rawWalls = this._buildContinuousWalls(waypoints, hw, segmentWallModes, closedLoop && defaultWalls !== 'none');
+            walls.push(...this._cullOverlappingWalls(rawWalls, waypoints, hw, sectionOf, closedLoop));
         }
 
-        // ── Post-process: wall culling moved to centerTrack() so it uses
-        //    final scaled coordinates ──
+        const customWallSegments = (def.customWalls || []).map((wall, idx) => {
+            const cx = (wall[0] + wall[2]) / 2;
+            const cy = (wall[1] + wall[3]) / 2;
+            return [wall[0], wall[1], wall[2], wall[3], cx, cy, -100000 - idx];
+        });
+        walls.push(...customWallSegments);
 
         return {
             name: def.name || 'Custom Track',
@@ -151,38 +162,145 @@ const TrackBuilder = {
             wallWidth: 4,
             truckScale: def.truckScale || 1,
             hazards,
+            customWallCount: customWallSegments.length,
             _sectionOf: sectionOf,
             _program: def,
         };
     },
 
-    // Add left + right wall segments between two waypoints
-    // Each wall is [x1, y1, x2, y2, cx, cy, wpIdx] where cx,cy = centerline midpoint
-    _addWallPair(walls, prev, curr, hw, wpIdx) {
-        const dx = curr[0] - prev[0];
-        const dy = curr[1] - prev[1];
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len === 0) return;
-        const nx = -dy / len, ny = dx / len;
-        const cx = (prev[0] + curr[0]) / 2;
-        const cy = (prev[1] + curr[1]) / 2;
-        walls.push([
-            Math.round(prev[0] - nx * hw), Math.round(prev[1] - ny * hw),
-            Math.round(curr[0] - nx * hw), Math.round(curr[1] - ny * hw),
-            cx, cy, wpIdx
-        ]);
-        walls.push([
-            Math.round(prev[0] + nx * hw), Math.round(prev[1] + ny * hw),
-            Math.round(curr[0] + nx * hw), Math.round(curr[1] + ny * hw),
-            cx, cy, wpIdx
-        ]);
+    _buildContinuousWalls(waypoints, hw, segmentWallModes, closeLoop) {
+        const len = waypoints.length;
+        if (len < 2) return [];
+
+        const segCount = closeLoop ? len : len - 1;
+        const segNormals = [];
+        const segDirs = [];
+        const segLengths = [];
+        for (let i = 0; i < segCount; i++) {
+            const j = (i + 1) % len;
+            const dx = waypoints[j][0] - waypoints[i][0];
+            const dy = waypoints[j][1] - waypoints[i][1];
+            const segLen = Math.sqrt(dx * dx + dy * dy) || 1;
+            segLengths.push(segLen);
+            segDirs.push({ x: dx / segLen, y: dy / segLen });
+            segNormals.push({ x: -dy / segLen, y: dx / segLen });
+        }
+
+        function intersectLines(a, b, c, d) {
+            const abx = b.x - a.x;
+            const aby = b.y - a.y;
+            const cdx = d.x - c.x;
+            const cdy = d.y - c.y;
+            const denom = abx * cdy - aby * cdx;
+            if (Math.abs(denom) < 0.0001) return null;
+            const acx = c.x - a.x;
+            const acy = c.y - a.y;
+            const t = (acx * cdy - acy * cdx) / denom;
+            return { x: a.x + abx * t, y: a.y + aby * t };
+        }
+
+        function offsetVertex(i, side) {
+            const prevIdx = closeLoop ? (i - 1 + segCount) % segCount : (i > 0 ? i - 1 : -1);
+            const nextIdx = i < segCount ? i : (closeLoop ? 0 : -1);
+            const prevNormal = prevIdx >= 0 ? segNormals[prevIdx] : null;
+            const nextNormal = nextIdx >= 0 ? segNormals[nextIdx] : null;
+            const prevDir = prevIdx >= 0 ? segDirs[prevIdx] : null;
+            const nextDir = nextIdx >= 0 ? segDirs[nextIdx] : null;
+            const prevLen = prevIdx >= 0 ? segLengths[prevIdx] : 0;
+            const nextLen = nextIdx >= 0 ? segLengths[nextIdx] : 0;
+            const point = { x: waypoints[i][0], y: waypoints[i][1] };
+
+            if (prevNormal && nextNormal && prevDir && nextDir) {
+                const prevStart = {
+                    x: point.x - prevDir.x * prevLen + prevNormal.x * hw * side,
+                    y: point.y - prevDir.y * prevLen + prevNormal.y * hw * side,
+                };
+                const prevEnd = {
+                    x: point.x + prevNormal.x * hw * side,
+                    y: point.y + prevNormal.y * hw * side,
+                };
+                const nextStart = {
+                    x: point.x + nextNormal.x * hw * side,
+                    y: point.y + nextNormal.y * hw * side,
+                };
+                const nextEnd = {
+                    x: point.x + nextDir.x * nextLen + nextNormal.x * hw * side,
+                    y: point.y + nextDir.y * nextLen + nextNormal.y * hw * side,
+                };
+                const intersection = intersectLines(prevStart, prevEnd, nextStart, nextEnd);
+                if (intersection) {
+                    const maxJoin = Math.max(hw * 2.5, Math.min(prevLen, nextLen) * 0.75);
+                    const dist = Math.hypot(intersection.x - point.x, intersection.y - point.y);
+                    if (dist <= maxJoin) return intersection;
+                }
+                return {
+                    x: point.x + nextNormal.x * hw * side,
+                    y: point.y + nextNormal.y * hw * side,
+                };
+            }
+
+            if (nextNormal) {
+                return { x: point.x + nextNormal.x * hw * side, y: point.y + nextNormal.y * hw * side };
+            }
+            if (prevNormal) {
+                return { x: point.x + prevNormal.x * hw * side, y: point.y + prevNormal.y * hw * side };
+            }
+            return point;
+        }
+
+        const leftPts = new Array(len);
+        const rightPts = new Array(len);
+        for (let i = 0; i < len; i++) {
+            leftPts[i] = offsetVertex(i, -1);
+            rightPts[i] = offsetVertex(i, 1);
+        }
+
+        const walls = [];
+        for (let i = 1; i < len; i++) {
+            if (segmentWallModes[i - 1] === 'none') continue;
+            const a = waypoints[i - 1], b = waypoints[i];
+            const leftA = leftPts[i - 1], leftB = leftPts[i];
+            const rightA = rightPts[i - 1], rightB = rightPts[i];
+            const cx = (a[0] + b[0]) / 2;
+            const cy = (a[1] + b[1]) / 2;
+            walls.push([
+                Math.round(leftA.x), Math.round(leftA.y),
+                Math.round(leftB.x), Math.round(leftB.y),
+                cx, cy, i - 1
+            ]);
+            walls.push([
+                Math.round(rightA.x), Math.round(rightA.y),
+                Math.round(rightB.x), Math.round(rightB.y),
+                cx, cy, i - 1
+            ]);
+        }
+
+        if (closeLoop && segmentWallModes.length) {
+            const a = waypoints[len - 1], b = waypoints[0];
+            const leftA = leftPts[len - 1], leftB = leftPts[0];
+            const rightA = rightPts[len - 1], rightB = rightPts[0];
+            const cx = (a[0] + b[0]) / 2;
+            const cy = (a[1] + b[1]) / 2;
+            walls.push([
+                Math.round(leftA.x), Math.round(leftA.y),
+                Math.round(leftB.x), Math.round(leftB.y),
+                cx, cy, len - 1
+            ]);
+            walls.push([
+                Math.round(rightA.x), Math.round(rightA.y),
+                Math.round(rightB.x), Math.round(rightB.y),
+                cx, cy, len - 1
+            ]);
+        }
+
+        return walls;
     },
 
     // Remove wall fragments that land inside the track surface.
     // Uses sectionOf[] to know which section each segment belongs to.
     // A wall from section X skips all centerline segments also in section X.
     // This means turns keep their inner walls, but V-overlaps get culled.
-    _cullOverlappingWalls(walls, waypoints, hw, sectionOf) {
+    _cullOverlappingWalls(walls, waypoints, hw, sectionOf, closedLoop) {
         const SUB_LEN = 8;
         const threshold = hw * 0.85;
         const threshold2 = threshold * threshold;
@@ -190,7 +308,8 @@ const TrackBuilder = {
 
         // Pre-build centerline segments with section tag
         const segments = [];
-        for (let i = 0; i < len; i++) {
+        const segCount = closedLoop ? len : len - 1;
+        for (let i = 0; i < segCount; i++) {
             const j = (i + 1) % len;
             segments.push([
                 waypoints[i][0], waypoints[i][1],
@@ -348,8 +467,6 @@ const TrackBuilder = {
                     w[5] = Math.round((w[5] - cy) * scale + centerY);
                 }
             }
-            // Wall culling removed — editor has manual eraser tool
-
             // Apply erased walls from editor (if any)
             if (track._program && track._program.erasedWalls && track._program.erasedWalls.length) {
                 const erased = new Set(track._program.erasedWalls);

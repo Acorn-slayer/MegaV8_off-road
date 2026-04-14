@@ -2273,12 +2273,38 @@ class RaceScene extends Phaser.Scene {
         const wallWidth = this.track.wallWidth || 4;
         // Alternating red/white like a real race track
         for (let i = 0; i < walls.length; i++) {
+            const wall = walls[i];
+            if (wall[6] <= -100000) {
+                this._drawTireBarrier(gfx, wall[0], wall[1], wall[2], wall[3], 1);
+                continue;
+            }
             const color = (Math.floor(i / 2) % 2 === 0) ? 0xcc0000 : 0xffffff;
             gfx.lineStyle(wallWidth, color, 1);
             gfx.beginPath();
-            gfx.moveTo(walls[i][0], walls[i][1]);
-            gfx.lineTo(walls[i][2], walls[i][3]);
+            gfx.moveTo(wall[0], wall[1]);
+            gfx.lineTo(wall[2], wall[3]);
             gfx.strokePath();
+        }
+    }
+
+    _drawTireBarrier(gfx, x1, y1, x2, y2, scale = 1) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len < 0.001) return;
+
+        const tireRadius = Math.max(2.5, 3.2 * scale);
+        const spacing = tireRadius * 1.7;
+        const count = Math.max(1, Math.round(len / spacing));
+
+        for (let i = 0; i <= count; i++) {
+            const t = count === 0 ? 0 : i / count;
+            const cx = x1 + dx * t;
+            const cy = y1 + dy * t;
+            gfx.fillStyle(0x111111, 1);
+            gfx.fillCircle(cx, cy, tireRadius);
+            gfx.lineStyle(Math.max(1, tireRadius * 0.45), 0x444444, 1);
+            gfx.strokeCircle(cx, cy, tireRadius * 0.72);
         }
     }
 
